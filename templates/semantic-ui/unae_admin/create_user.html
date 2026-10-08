@@ -1,0 +1,75 @@
+{#
+   Repositorio UNAE Análisis — formulario de creación de usuarios (solo admin).
+   Solo presentación; la funcionalidad existente no se modifica.
+#}
+{% extends "invenio_administration/base.html" %}
+
+{% block page_title %}
+  <h1 class="ui header">Crear usuario</h1>
+  <p class="text-muted">Las cuentas solo las crea la administración. El nuevo usuario podrá acceder con su correo y contraseña.</p>
+  <div class="ui divider" aria-hidden="true"></div>
+{% endblock page_title %}
+
+{% block admin_page_content %}
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="ui {{ 'negative' if category == 'error' else 'positive' }} message">
+          <p>{{ message }}</p>
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  {% if errors %}
+    <div class="ui negative message">
+      <div class="header">Revisa el formulario</div>
+      <ul class="list">
+        {% for field, msgs in errors.items() %}
+          {% for msg in msgs %}
+            <li><strong>{{ field }}:</strong> {{ msg }}</li>
+          {% endfor %}
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  <form method="POST" action="/administration/users/create" class="ui form" style="max-width: 560px;">
+    <input type="hidden" name="form_token" value="{{ form_token }}">
+    <div class="field">
+      <label for="unae-email">Correo electrónico</label>
+      <input id="unae-email" type="email" name="email" required
+             placeholder="usuario@unae.edu" value="{{ values.get('email', '') }}">
+    </div>
+    <div class="field">
+      <label for="unae-password">Contraseña temporal (mín. 8 caracteres)</label>
+      <input id="unae-password" type="password" name="password" required minlength="8"
+             placeholder="••••••••" autocomplete="new-password">
+    </div>
+    <div class="inline field">
+      <div class="ui checkbox">
+        <input id="unae-active" type="checkbox" name="active" value="y"
+               {{ 'checked' if values.get('active', 'y') else '' }}>
+        <label for="unae-active">Cuenta activa (puede ingresar de inmediato)</label>
+      </div>
+    </div>
+    <div class="inline field">
+      <div class="ui checkbox">
+        <input id="unae-confirmed" type="checkbox" name="confirmed" value="y"
+               {{ 'checked' if values.get('confirmed', 'y') else '' }}>
+        <label for="unae-confirmed">Correo confirmado</label>
+      </div>
+    </div>
+    <div class="inline field">
+      <div class="ui checkbox">
+        <input id="unae-admin" type="checkbox" name="make_admin" value="y"
+               {{ 'checked' if values.get('make_admin') else '' }}>
+        <label for="unae-admin">Otorgar rol de administrador</label>
+      </div>
+    </div>
+    <button type="submit" class="ui primary button">
+      <i class="plus icon" aria-hidden="true"></i>Crear usuario
+    </button>
+    <a href="/administration/users" class="ui button">Cancelar</a>
+  </form>
+{% endblock admin_page_content %}

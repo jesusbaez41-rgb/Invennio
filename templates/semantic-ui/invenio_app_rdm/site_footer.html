@@ -1,32 +1,123 @@
 {#
-    -*- coding: utf-8 -*-
-    Copyright (C) 2022-2024 CERN.
-    Copyright (C) 2024 KTH Royal Institute of Technology.
-    Copyright (C) 2026 Front Matter.
-
-    Invenio App RDM is free software; you can redistribute it and/or modify it
-    under the terms of the MIT License; see LICENSE file for more details.
+    Repositorio UNAE Análisis — pie institucional.
+    Sin menciones a la plataforma base. La funcionalidad no se toca.
 #}
 
-<div class="footer-bottom sub-footer">
+<style>
+  /* --- Repositorio UNAE Análisis: capa visual global (sin rebuild) --- */
+  :root {
+    --unae-blue: #0ea5e9;
+    --unae-blue-dark: #1d4ed8;
+    --unae-navy: #0f2a44;
+    --unae-ink: #1e293b;
+    --unae-muted: #64748b;
+  }
+  /* Hero portada */
+  .frontpage-header {
+    background: linear-gradient(135deg, var(--unae-navy) 0%, #164e7c 55%, var(--unae-blue-dark) 100%) !important;
+    padding: 4.5rem 0 3.5rem !important;
+  }
+  .frontpage-header h1.ui.header.inverted {
+    font-weight: 800 !important;
+    letter-spacing: -0.02em;
+  }
+  .frontpage-header h1 .sub.header {
+    color: rgba(255, 255, 255, 0.82) !important;
+    font-weight: 400 !important;
+    margin-top: 0.9rem !important;
+    font-size: 1.1rem !important;
+  }
+  .frontpage-badge {
+    display: inline-block;
+    font-size: 0.75rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    border-radius: 999px;
+    padding: 0.35rem 0.9rem;
+    margin-bottom: 1rem;
+  }
+  #frontpage-search-bar .ui.action.input input {
+    border-radius: 999px 0 0 999px !important;
+    border: none !important;
+    padding-left: 1.4rem !important;
+  }
+  #frontpage-search-bar .ui.search.button {
+    border-radius: 0 999px 999px 0 !important;
+    background: var(--unae-blue) !important;
+    color: #fff !important;
+  }
+  .frontpage-quicklinks a {
+    color: rgba(255, 255, 255, 0.85) !important;
+    margin: 0 0.7rem;
+    font-size: 0.9rem;
+  }
+  .frontpage-quicklinks a:hover { color: #fff !important; text-decoration: underline; }
+  /* Botones y enlaces: azul institucional */
+  .ui.primary.button, .ui.primary.buttons .button {
+    background-color: var(--unae-blue-dark) !important;
+    border-radius: 999px !important;
+  }
+  .ui.primary.button:hover, .ui.primary.buttons .button:hover {
+    background-color: #1e40af !important;
+  }
+  a { color: var(--unae-blue-dark); }
+  a:hover { color: #1e40af; }
+  /* Barra superior más sobria */
+  .ui.menu.top-menu, #main-menu {
+    border-bottom: 3px solid var(--unae-blue) !important;
+  }
+  /* Pie institucional */
+  .unae-footer { background: #0b1e33; color: rgba(255,255,255,0.78); padding: 2.2rem 0 0; margin-top: 3rem; }
+  .unae-footer h4 { color: #fff; font-size: 0.95rem; margin-bottom: 0.7rem; }
+  .unae-footer a { color: rgba(255,255,255,0.78); }
+  .unae-footer a:hover { color: #fff; text-decoration: underline; }
+  .unae-footer .sub-footer { background: #071423; margin-top: 1.8rem; padding: 0.9rem 0; font-size: 0.85rem; }
+</style>
+
+<div class="unae-footer">
   <div class="ui container">
-    <div class="ui grid">
-      <div class="eight wide column left middle aligned">
-        {%- block footer_bottom_left %}
-          {{ _("Powered by") }}
-          <a href="http://inveniosoftware.org/products/rdm">{{ _("InvenioRDM") }}</a>
-          {%- if config.INVENIO_APP_RDM_VERSION %}
-          <a class="ui padded text-muted" href="https://pypi.org/project/invenio-app-rdm/{{ config.INVENIO_APP_RDM_VERSION }}/">{{ config.INVENIO_APP_RDM_VERSION }}</a>
-          {%- endif %}
-        {%- endblock footer_bottom_left %}
+    <div class="ui stackable three column grid">
+      <div class="column">
+        <h4>Repositorio UNAE Análisis</h4>
+        <p>Plataforma institucional para preservar, compartir y descubrir la producción académica y científica.</p>
       </div>
-      <div class="eight wide column right aligned">
-        {%- block footer_bottom_right %}
-          {%- if config.I18N_LANGUAGES %}
-            {% from "invenio_i18n/macros/language_selector.html" import language_selector_dropdown %}
-            {{ language_selector_dropdown() }}
-          {%- endif %}
-        {%- endblock footer_bottom_right %}
+      <div class="column">
+        <h4>Explorar</h4>
+        <p>
+          <a href="/search">Buscar registros</a><br>
+          <a href="/communities">Comunidades</a><br>
+          <a href="/me/uploads">Mis envíos</a>
+        </p>
+      </div>
+      <div class="column">
+        <h4>Ayuda</h4>
+        <p>
+          <a href="/help">Guía de uso</a><br>
+          <a href="/login">Acceso institucional</a><br>
+          Contacto: solicita tu cuenta a la administración.
+        </p>
+      </div>
+    </div>
+  </div>
+  <div class="footer-bottom sub-footer">
+    <div class="ui container">
+      <div class="ui grid">
+        <div class="eight wide column left middle aligned">
+          {%- block footer_bottom_left %}
+            © 2026 Repositorio UNAE Análisis · Uso institucional
+          {%- endblock footer_bottom_left %}
+        </div>
+        <div class="eight wide column right aligned">
+          {%- block footer_bottom_right %}
+            {%- if config.I18N_LANGUAGES %}
+              {% from "invenio_i18n/macros/language_selector.html" import language_selector_dropdown %}
+              {{ language_selector_dropdown() }}
+            {%- endif %}
+          {%- endblock footer_bottom_right %}
+        </div>
       </div>
     </div>
   </div>

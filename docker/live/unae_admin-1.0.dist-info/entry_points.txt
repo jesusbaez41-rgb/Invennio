@@ -1,0 +1,2 @@
+[invenio_base.blueprints]
+unae_admin = unae_admin.views:create_blueprint

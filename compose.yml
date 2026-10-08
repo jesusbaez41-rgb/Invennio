@@ -18,7 +18,9 @@ x-envy:
 x-set-base:
   # The Postgres database URI that should be used for the connection.  
   &base
-  INVENIO_SQLALCHEMY_DATABASE_URI: "postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-}@${POSTGRES_HOST:-db}:5432/${POSTGRES_DB:-inveniordm}"
+  INVENIO_SQLALCHEMY_DATABASE_URI: "postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-changeme}@${POSTGRES_HOST:-db}:5432/${POSTGRES_DB:-inveniordm}"
+  INVENIO_SECRET_KEY: "${INVENIO_SECRET_KEY:-changeme-insecure-local-secret-key}"
+  INVENIO_SECURITY_PASSWORD_SALT: "${INVENIO_SECURITY_PASSWORD_SALT:-changeme-insecure-local-salt}"
   # Default locale (language).
   INVENIO_BABEL_DEFAULT_LOCALE: "${INVENIO_BABEL_DEFAULT_LOCALE:-en}"
   INVENIO_ISO639_LANGUAGES: "${INVENIO_ISO639_LANGUAGES:-de,es,fr}"
@@ -41,9 +43,9 @@ x-set-authentication:
   &authentication
   INVENIO_ACCOUNTS_DEFAULT_USER_VISIBILITY: "${INVENIO_ACCOUNTS_DEFAULT_USER_VISIBILITY:-restricted}"
   # Enable local login.
-  INVENIO_ACCOUNTS_LOCAL_LOGIN_ENABLED: "${INVENIO_ACCOUNTS_LOCAL_LOGIN_ENABLED:-true}"
+  INVENIO_ACCOUNTS_LOCAL_LOGIN_ENABLED: "${INVENIO_ACCOUNTS_LOCAL_LOGIN_ENABLED:-True}"
   # Redirect to the only external login service under specific conditions.
-  INVENIO_OAUTHCLIENT_AUTO_REDIRECT_TO_EXTERNAL_LOGIN: "${INVENIO_OAUTHCLIENT_AUTO_REDIRECT_TO_EXTERNAL_LOGIN:-false}"
+  INVENIO_OAUTHCLIENT_AUTO_REDIRECT_TO_EXTERNAL_LOGIN: "${INVENIO_OAUTHCLIENT_AUTO_REDIRECT_TO_EXTERNAL_LOGIN:-False}"
   # OpenID Connect issuer URL for authentication. 
   # Link: https://auth-wiki.logto.io/openid-connect-discovery
   INVENIO_OIDC_ISSUER: "${INVENIO_OIDC_ISSUER:-}"
@@ -51,19 +53,20 @@ x-set-authentication:
   INVENIO_OIDC_APP_CREDENTIALS_CONSUMER_SECRET: "${INVENIO_OIDC_APP_CREDENTIALS_CONSUMER_SECRET:-}"
 
   # Allow users to change their password.
-  INVENIO_SECURITY_CHANGEABLE: "${INVENIO_SECURITY_CHANGEABLE:-true}"
+  INVENIO_SECURITY_CHANGEABLE: "${INVENIO_SECURITY_CHANGEABLE:-True}"
   # Require email confirmation for new accounts.
-  INVENIO_SECURITY_CONFIRMABLE: "${INVENIO_SECURITY_CONFIRMABLE:-true}"
+  INVENIO_SECURITY_CONFIRMABLE: "${INVENIO_SECURITY_CONFIRMABLE:-True}"
   # Allow users to login without first confirming their email address.
-  INVENIO_SECURITY_LOGIN_WITHOUT_CONFIRMATION: "${INVENIO_SECURITY_LOGIN_WITHOUT_CONFIRMATION:-true}"
+  INVENIO_SECURITY_LOGIN_WITHOUT_CONFIRMATION: "${INVENIO_SECURITY_LOGIN_WITHOUT_CONFIRMATION:-True}"
   # Allow users to reset their password.
-  INVENIO_SECURITY_RECOVERABLE: "${INVENIO_SECURITY_RECOVERABLE:-true}"
+  INVENIO_SECURITY_RECOVERABLE: "${INVENIO_SECURITY_RECOVERABLE:-True}"
   # Allow users to register new accounts.
-  INVENIO_SECURITY_REGISTERABLE: "${INVENIO_SECURITY_REGISTERABLE:-true}"
+  # Desactivado: solo el admin crea usuarios desde /admin/users.
+  INVENIO_SECURITY_REGISTERABLE: "${INVENIO_SECURITY_REGISTERABLE:-False}"
   # Enable tracking of basic user login statistics.
-  INVENIO_SECURITY_TRACKABLE: "${INVENIO_SECURITY_TRACKABLE:-true}"
+  INVENIO_SECURITY_TRACKABLE: "${INVENIO_SECURITY_TRACKABLE:-True}"
   # Disable the update of the user profile (email, full name, etc.) when only external authentication is enabled.
-  INVENIO_USERPROFILES_READ_ONLY: "${INVENIO_USERPROFILES_READ_ONLY:-true}"
+  INVENIO_USERPROFILES_READ_ONLY: "${INVENIO_USERPROFILES_READ_ONLY:-True}"
 # Redis/Valkey configuration for broker and cache.
 x-set-cache:
 
@@ -79,21 +82,21 @@ x-set-db: &db
     # Link: https://inveniordm.docs.cern.ch/operate/customize/dois/
 x-set-doi: &doi
   INVENIO_DATACITE_DATACENTER_SYMBOL: "${INVENIO_DATACITE_DATACENTER_SYMBOL:-}"
-  INVENIO_DATACITE_ENABLED: "${INVENIO_DATACITE_ENABLED:-false}"
+  INVENIO_DATACITE_ENABLED: "${INVENIO_DATACITE_ENABLED:-False}"
   INVENIO_DATACITE_PREFIX: "${INVENIO_DATACITE_PREFIX:-}"
-  INVENIO_DATACITE_TEST_MODE: "${INVENIO_DATACITE_TEST_MODE:-false}"
+  INVENIO_DATACITE_TEST_MODE: "${INVENIO_DATACITE_TEST_MODE:-False}"
   INVENIO_DATACITE_USERNAME: "${INVENIO_DATACITE_USERNAME:-}"
-  INVENIO_RDM_ALLOW_EXTERNAL_DOI_VERSIONING: "${INVENIO_RDM_ALLOW_EXTERNAL_DOI_VERSIONING:-false}"
-  INVENIO_RDM_ALLOW_METADATA_ONLY_RECORDS: "${INVENIO_RDM_ALLOW_METADATA_ONLY_RECORDS:-true}"
-  INVENIO_RDM_ALLOW_RESTRICTED_RECORDS: "${INVENIO_RDM_ALLOW_RESTRICTED_RECORDS:-true}"
+  INVENIO_RDM_ALLOW_EXTERNAL_DOI_VERSIONING: "${INVENIO_RDM_ALLOW_EXTERNAL_DOI_VERSIONING:-False}"
+  INVENIO_RDM_ALLOW_METADATA_ONLY_RECORDS: "${INVENIO_RDM_ALLOW_METADATA_ONLY_RECORDS:-True}"
+  INVENIO_RDM_ALLOW_RESTRICTED_RECORDS: "${INVENIO_RDM_ALLOW_RESTRICTED_RECORDS:-True}"
 # Email configuration.
 # Link: https://inveniordm.docs.cern.ch/operate/customize/emails/
 x-set-mail: &mail
-  INVENIO_MAIL_SUPPRESS_SEND: "${INVENIO_MAIL_SUPPRESS_SEND:-true}"
+  INVENIO_MAIL_SUPPRESS_SEND: "${INVENIO_MAIL_SUPPRESS_SEND:-True}"
   INVENIO_MAIL_SERVER: "${INVENIO_MAIL_SERVER:-127.0.0.1}"
   INVENIO_MAIL_PORT: "${INVENIO_MAIL_PORT:-587}"
-  INVENIO_MAIL_USE_TLS: "${INVENIO_MAIL_USE_TLS:-true}"
-  INVENIO_MAIL_USE_SSL: "${INVENIO_MAIL_USE_SSL:-false}"
+  INVENIO_MAIL_USE_TLS: "${INVENIO_MAIL_USE_TLS:-True}"
+  INVENIO_MAIL_USE_SSL: "${INVENIO_MAIL_USE_SSL:-False}"
   INVENIO_MAIL_USERNAME: "${INVENIO_MAIL_USERNAME:-info}"
   INVENIO_MAIL_PASSWORD: "${INVENIO_MAIL_PASSWORD:-}"
   INVENIO_ADMIN_EMAIL: "${INVENIO_ADMIN_EMAIL:-info@inveniosoftware.org}"
@@ -122,11 +125,11 @@ x-set-web: &web
   INVENIO_SITE_UI_URL: "${INVENIO_SITE_UI_URL:-https://localhost}"
   INVENIO_SITE_API_URL: "${INVENIO_SITE_API_URL:-https://localhost/api}"
   INVENIO_TRUSTED_HOSTS: "${INVENIO_TRUSTED_HOSTS:-['0.0.0.0', 'localhost', '127.0.0.1']}"
-  INVENIO_THEME_FRONTPAGE_TITLE: "${INVENIO_THEME_FRONTPAGE_TITLE:-InvenioRDM Starter}"
-  INVENIO_THEME_FRONTPAGE_SUBTITLE: "${INVENIO_THEME_FRONTPAGE_SUBTITLE:-A starter project for the turn-key research data management repository.}"
-  INVENIO_THEME_LOGO: "${INVENIO_THEME_LOGO:-images/invenio-rdm.svg}"
-  INVENIO_THEME_SHOW_FRONTPAGE_INTRO_SECTION: "${INVENIO_THEME_SHOW_FRONTPAGE_INTRO_SECTION:-false}"
-  INVENIO_THEME_SITENAME: "${INVENIO_THEME_SITENAME:-InvenioRDM Starter}"
+  INVENIO_THEME_FRONTPAGE_TITLE: "${INVENIO_THEME_FRONTPAGE_TITLE:-Repositorio UNAE Análisis}"
+  INVENIO_THEME_FRONTPAGE_SUBTITLE: "${INVENIO_THEME_FRONTPAGE_SUBTITLE:-Plataforma institucional para preservar, compartir y descubrir la producción académica.}"
+  INVENIO_THEME_LOGO: "${INVENIO_THEME_LOGO:-images/logo-unae.svg}"
+  INVENIO_THEME_SHOW_FRONTPAGE_INTRO_SECTION: "${INVENIO_THEME_SHOW_FRONTPAGE_INTRO_SECTION:-False}"
+  INVENIO_THEME_SITENAME: "${INVENIO_THEME_SITENAME:-Repositorio UNAE Análisis}"
 services:
   # Describes the Redis/Valkey cache service configuration.
   cache:
@@ -135,26 +138,30 @@ services:
   # Describes the Postgres database service configuration.
   db:
     image: postgres:17.4-bookworm
-    profiles: [ dev, staging ]
     environment:
       <<: [ *db ]
+    volumes:
+      - db-data:/var/lib/postgresql/data
 
   # Describes the Caddy proxy service configuration.
   # Link: https://docker-compose.de/en/proxy/caddy/
   proxy:
     image: caddy:2.10
-    profiles: [ dev, staging ]
     ports:
       - "80:80"
       - "443:443"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
   # Describes the Opensearch service configuration.
   # Link: https://docs.opensearch.org/latest/install-and-configure/install-opensearch/docker/
   search:
     image: opensearchproject/opensearch:2.18.0
     environment:
       <<: [ *search ]
+    volumes:
+      - search-data:/usr/share/opensearch/data
   # Describes InvenioRDM web service configuration.
   web:
     image: ghcr.io/front-matter/invenio-rdm-starter:latest
@@ -163,6 +170,16 @@ services:
     platform: linux/amd64
     environment:
       <<: [ *base, *cache, *web, *authentication, *mail, *s3 ]
+    volumes:
+      # Overrides en vivo sin rebuild: plantillas, logo e invenio.cfg
+      - ./templates:/opt/invenio/var/instance/templates:ro
+      - ./static/images:/opt/invenio/var/instance/static/images:ro
+      - ./invenio.cfg:/opt/invenio/var/instance/invenio.cfg:ro
+      # Extensión viva UNAE (código + entry points, sin rebuild de imagen)
+      - ./docker/live:/opt/unae_live:ro
+      - ./docker/live.pth:/opt/invenio/.venv/lib/python3.13/site-packages/unae_live.pth:ro
+      # Archivos subidos (comunidades, registros): persisten y con dueño correcto
+      - instance-data:/opt/invenio/var/instance/data
   # Describes InvenioRDM worker service configuration.
   worker:
     image: ghcr.io/front-matter/invenio-rdm-starter:latest
@@ -172,3 +189,17 @@ services:
     command: [ "celery", "-A", "invenio_app.celery", "worker", "--beat", "--schedule=/tmp/celerybeat-schedule", "--events", "--loglevel=WARNING" ]
     environment:
       <<: [ *base, *cache, *doi, *mail, *s3 ]
+    volumes:
+      - ./templates:/opt/invenio/var/instance/templates:ro
+      - ./static/images:/opt/invenio/var/instance/static/images:ro
+      - ./invenio.cfg:/opt/invenio/var/instance/invenio.cfg:ro
+      - ./docker/live:/opt/unae_live:ro
+      - ./docker/live.pth:/opt/invenio/.venv/lib/python3.13/site-packages/unae_live.pth:ro
+      - instance-data:/opt/invenio/var/instance/data
+
+volumes:
+  db-data:
+  search-data:
+  caddy-data:
+  caddy-config:
+  instance-data:

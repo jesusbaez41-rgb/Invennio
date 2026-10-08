@@ -1,10 +1,6 @@
 {# -*- coding: utf-8 -*-
-  Copyright (C) 2020 CERN.
-  Copyright (C) 2020 Northwestern University.
-  Copyright (C) 2021 New York University.
-
-  Invenio App RDM is free software; you can redistribute it and/or modify it
-  under the terms of the MIT License; see LICENSE file for more details.
+   Repositorio UNAE Análisis — cabecera de portada.
+   Solo cambia presentación; el formulario conserva action y parámetros (funcionalidad intacta).
 #}
 
 {%- extends config.THEME_HEADER_TEMPLATE %}
@@ -19,10 +15,11 @@
 <div id="frontpage-search-bar" class="ui container fluid frontpage-header">
 <div class="ui container grid">
   {%- block frontpage_title %}
-  {%- if config.THEME_FRONTPAGE_TITLE or config.THEME_FRONTPAGE_SUBTITLE %}
   <div class="row">
     <div class="sixteen wide mobile four wide computer column"></div>
-    <div class="sixteen wide mobile eight wide computer column centered">
+    <div class="sixteen wide mobile eight wide computer column centered center aligned">
+      <span class="frontpage-badge">Acceso institucional</span>
+      {%- if config.THEME_FRONTPAGE_TITLE or config.THEME_FRONTPAGE_SUBTITLE %}
       <h1 class="ui center aligned header inverted">
         {%- if config.THEME_FRONTPAGE_TITLE %}
         {{ _(config.THEME_FRONTPAGE_TITLE) }}
@@ -31,10 +28,10 @@
         <div class="sub header">{{ _(config.THEME_FRONTPAGE_SUBTITLE) }}</div>
         {%- endif %}
       </h1>
+      {%- endif %}
     </div>
     <div class="sixteen wide mobile four wide computer column"></div>
   </div>
-  {%- endif %}
   {%- endblock frontpage_title %}
   {%- block frontpage_form %}
   <div class="row">
@@ -42,12 +39,17 @@
     <div class="sixteen wide mobile eight wide computer column center aligned">
       <form action="{{ url_for('invenio_search_ui.search') }}" class="ui form" role="search">
         <div class="ui fluid big action input">
-          <input type="text" name="q" class="form-control" aria-label="{{ _('Search') }}" placeholder="{{ _('Search') }}">
+          <input type="text" name="q" class="form-control" aria-label="{{ _('Search') }}" placeholder="Buscar por título, autor, palabra clave…">
           <button type="submit" class="ui icon search button" aria-label="{{ _('Search') }}">
             <i class="search icon"></i>
           </button>
         </div>
       </form>
+      <div class="frontpage-quicklinks" style="margin-top: 1.2rem;">
+        <a href="{{ url_for('invenio_search_ui.search') }}">Búsqueda avanzada</a>
+        <a href="/communities">Comunidades</a>
+        <a href="/login">Acceso institucional</a>
+      </div>
     </div>
     <div class="sixteen wide mobile four wide computer column"></div>
   </div>

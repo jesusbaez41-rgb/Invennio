@@ -1,0 +1,48 @@
+# Override de PRODUCCIÓN — servidor Ubuntu con Apache ya ocupando 80/443.
+#
+# Qué hace:
+#  - Apaga Caddy (proxy) para no chocar con Apache.
+#  - Publica la web solo en loopback (127.0.0.1:5000); Apache proxea hacia ahí.
+#  - Reinicio automático de los servicios.
+#  - Permite subir memoria de OpenSearch vía .env.prod.
+#
+# Uso en el servidor:
+#   docker compose -f compose.yml -f compose.prod.yml --env-file .env.prod up -d
+#   (web, worker, db, search, cache — sin proxy)
+#
+# Primera vez (volúmenes vacíos): inicializar igual que en local:
+#   docker exec <proyecto>-web-1 invenio db init create
+#   docker exec <proyecto>-web-1 invenio index init
+#   docker exec <proyecto>-web-1 invenio rdm-records custom-fields init
+#   docker exec <proyecto>-web-1 invenio communities custom-fields init
+#   docker exec <proyecto>-web-1 invenio rdm-records fixtures
+#   docker exec <proyecto>-web-1 invenio rdm rebuild-all-indices
+#   docker exec <proyecto>-web-1 invenio queues declare
+#   docker exec <proyecto>-web-1 invenio users create admin@tudominio --password 'XXX' --active --confirm
+#   docker exec <proyecto>-web-1 invenio roles add admin@tudominio admin
+
+services:
+  # Caddy apagado en producción: Apache ya escucha en 80/443.
+  proxy:
+    profiles: ["donotstart"]
+
+  web:
+    ports:
+      # Solo loopback: nadie externo llega directo, solo Apache.
+      - "127.0.0.1:5000:5000"
+    restart: unless-stopped
+
+  worker:
+    restart: unless-stopped
+
+  db:
+    # Sin ports: la base solo es visible dentro de la red docker.
+    restart: unless-stopped
+
+  search:
+    restart: unless-stopped
+    environment:
+      OPENSEARCH_JAVA_OPTS: "${OPENSEARCH_JAVA_OPTS:--Xms1g -Xmx1g}"
+
+  cache:
+    restart: unless-stopped
