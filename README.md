@@ -37,6 +37,35 @@ Credenciales y secretos quedan en `.env` (local) o `.env.prod` (producción).
 En producción, Apache debe proxyear a `127.0.0.1:5000`; hay configuraciones
 listas en `apache/`.
 
+### Límites de recursos en producción
+
+`compose.prod.yml` acota el consumo para que el stack no sature el servidor:
+
+| Servicio | CPU | Memoria | Observación |
+|---|---|---|---|
+| `web` | 1.5 | — | Gunicorn 2×4 |
+| `worker` | 1.0 | — | Celery con `--concurrency=2`, sin `--events` |
+| `search` | 2.0 | 2 GB | Heap Java configurable |
+
+El heap de OpenSearch se ajusta en `.env.prod` (regla práctica: 25 % de la RAM,
+nunca más de 1 GB en un VPS de 4–8 GB):
+
+```bash
+OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m
+```
+
+Tras cambiar el archivo de entorno hay que recrear los servicios, no reiniciarlos:
+
+```bash
+docker compose -f compose.yml -f compose.prod.yml --env-file .env.prod up -d web worker search
+```
+
+Para inspeccionar el consumo real (un `100%` equivale a un núcleo completo):
+
+```bash
+docker stats --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}"
+```
+
 ## Requirements
 
 * Docker Desktop ([Windows](https://docs.docker.com/desktop/install/windows-install/), [macOS](https://docs.docker.com/desktop/install/mac-install/), [Linux](https://docs.docker.com/desktop/install/linux-install/)) or Docker Engine ([Linux](https://docs.docker.com/engine/install/))

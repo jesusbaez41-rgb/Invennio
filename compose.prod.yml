@@ -4,7 +4,8 @@
 #  - Apaga Caddy (proxy) para no chocar con Apache.
 #  - Publica la web solo en loopback (127.0.0.1:5000); Apache proxea hacia ahí.
 #  - Reinicio automático de los servicios.
-#  - Permite subir memoria de OpenSearch vía .env.prod.
+#  - Límites de CPU y memoria para que el stack no sature el servidor.
+#  - Permite ajustar la memoria de OpenSearch vía .env.prod.
 #
 # Uso en el servidor:
 #   docker compose -f compose.yml -f compose.prod.yml --env-file .env.prod up -d
@@ -31,9 +32,15 @@ services:
       # Solo loopback: nadie externo llega directo, solo Apache.
       - "127.0.0.1:5000:5000"
     restart: unless-stopped
+    # Gunicorn: 2 workers × 4 hilos. 1.5 núcleos alcanza para el tráfico habitual.
+    cpus: "1.5"
 
   worker:
     restart: unless-stopped
+    # Sin --events (evita el tráfico constante de monitoreo) y con concurrencia
+    # fija: por defecto Celery abre un proceso por núcleo del host.
+    cpus: "1.0"
+    command: [ "celery", "-A", "invenio_app.celery", "worker", "--beat", "--schedule=/tmp/celerybeat-schedule", "--loglevel=WARNING", "--concurrency=2" ]
 
   db:
     # Sin ports: la base solo es visible dentro de la red docker.
@@ -41,8 +48,12 @@ services:
 
   search:
     restart: unless-stopped
+    # OpenSearch es el servicio que más CPU y RAM consume durante la indexación.
+    cpus: "2.0"
+    mem_limit: 2g
     environment:
-      OPENSEARCH_JAVA_OPTS: "${OPENSEARCH_JAVA_OPTS:--Xms1g -Xmx1g}"
+      # Heap = 25 % de la RAM del servidor, nunca más de 1 GB en un VPS.
+      OPENSEARCH_JAVA_OPTS: "${OPENSEARCH_JAVA_OPTS:--Xms512m -Xmx512m}"
 
   cache:
     restart: unless-stopped
