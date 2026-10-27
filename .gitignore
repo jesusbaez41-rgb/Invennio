@@ -170,3 +170,6 @@ public/
 
 # Node modules
 node_modules
+
+# Documento generado (no se versiona)
+docs/*.docx

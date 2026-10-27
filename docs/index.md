@@ -24,6 +24,17 @@ InvenioRDM Starter open source software and is coordinated by the InvenioRDM par
 
 A local installation of Python or Invenio-CLI is not required. A git client is recommended but not required.
 
+## Cumplimiento del Estándar de Software (MITIC)
+
+Este despliegue incluye el paquete de cumplimiento del *Estándar de Software* del MITIC (Paraguay):
+[matriz de revisión de cumplimiento](estandar-mitic/00-matriz-cumplimiento.md),
+[requerimientos funcionales](estandar-mitic/01-matriz-requerimientos-funcionales.md),
+[requerimientos no funcionales](estandar-mitic/02-matriz-requerimientos-no-funcionales.md),
+[trazabilidad y pruebas](estandar-mitic/03-matriz-trazabilidad-pruebas.md),
+[inventario de software](estandar-mitic/04-inventario-software.md) y
+[especificación técnica](estandar-mitic/05-especificacion-tecnica.md).
+Ver el [índice del paquete](estandar-mitic/README.md).
+
 ## Quickstart
 
 Download the `docker-compose.yml` file from the [InvenioRDM Starter git repository](https://github.com/front-matter/invenio-rdm-starter). Alternatively, clone the repository with git.
