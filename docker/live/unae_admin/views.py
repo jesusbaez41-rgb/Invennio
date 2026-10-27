@@ -132,4 +132,17 @@ def create_blueprint(app):
             errors={},
         )
 
+    @app.context_processor
+    def inject_user_insights():
+        """Expose user statistics to the admin users list template."""
+        if request.path.rstrip("/") != "/administration/users":
+            return {}
+        try:
+            from . import insights
+
+            return {"unae_insights": insights.collect()}
+        except Exception:  # noqa: BLE001 - never break the admin page
+            current_app.logger.exception("Could not collect user insights")
+            return {"unae_insights": None}
+
     return blueprint

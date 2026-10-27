@@ -1,0 +1,50 @@
+{#
+  Repositorio UNAE Análisis — listado de depósitos recientes.
+
+  Copia del macro de invenio_app_rdm con el título por defecto en español
+  (la traducción oficial no incluye el msgid "Recent uploads") y un esqueleto
+  de carga más corto.
+#}
+
+{% macro records_list(
+    title=_("Últimos depósitos"),
+    fetch_url="/api/records?sort=newest&size=10"
+  )
+%}
+  <div
+    id="records-list"
+    data-fetch-url="{{ fetch_url }}"
+    data-title="{{ title }}"
+  >
+
+    <h2 class="ui header">{{ title }}</h2>
+
+    {% for n in range(3) %}
+      <div class="ui fluid placeholder rel-mt-3">
+        <div class="header">
+          <div class="line"></div>
+        </div>
+
+        <div class="paragraph">
+          <div class="line"></div>
+        </div>
+
+        <div class="paragraph">
+          <div class="line"></div>
+          <div class="line"></div>
+        </div>
+
+        <div class="paragraph">
+          <div class="line"></div>
+        </div>
+      </div>
+
+      {% if n < 2 %}
+        <div class="ui divider rel-mt-2 rel-mb-2"></div>
+      {% endif %}
+    {% endfor %}
+  </div>
+
+  {{ webpack['overridable-registry.js'] }}
+  {{ webpack['invenio-app-rdm-frontpage.js']}}
+{% endmacro %}

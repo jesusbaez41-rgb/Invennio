@@ -1,55 +1,46 @@
 {#
-   Repositorio UNAE Análisis — sección introductoria institucional.
-   Reemplaza la guía de instalación base sin tocar funcionalidad.
+   Repositorio UNAE Análisis — sección introductoria (tarjetas de uso).
+   Se muestra cuando THEME_SHOW_FRONTPAGE_INTRO_SECTION = True.
 #}
 
-<section class="light-bg rel-pt-3 rel-pb-3">
-  <h2 class="section-title">
-    {{ _("Qué encontrarás en este repositorio") }}
-  </h2>
+<section class="unae-features" aria-labelledby="unae-features-title">
+  <div class="ui container">
 
-  <div class="ui cards centered container">
-    <div class="ui card">
-      <div class="image">
-        <div class="intro-step-list-image">1</div>
-      </div>
-      <div class="content">
-        <div class="header">
-          {{ _("Explora") }}
-        </div>
-        <div class="description">
-          {{ _("Busca tesis, artículos, informes y conjuntos de datos de la comunidad académica.") }}
-          <a href="/search">{{ _("Ir al buscador") }}</a>.
-        </div>
-      </div>
+    <div class="unae-features-head">
+      <span class="unae-kicker">{{ _("Cómo funciona") }}</span>
+      <h2 id="unae-features-title">{{ _("Todo el conocimiento institucional, en un solo lugar") }}</h2>
+      <p>{{ _("Descubre, deposita y comparte la producción académica y científica con estándares abiertos.") }}</p>
     </div>
 
-    <div class="ui card">
-      <div class="image">
-        <div class="intro-step-list-image">2</div>
-      </div>
-      <div class="content">
-        <div class="header">
-          {{ _("Publica") }}
-        </div>
-        <div class="description">
-          {{ _("Si tienes cuenta institucional, deposita tus trabajos y compártelos con licencias abiertas.") }}
-          <a href="/me/uploads">{{ _("Mis envíos") }}</a>.
-        </div>
-      </div>
-    </div>
+    <div class="unae-features-grid">
 
-    <div class="ui card">
-      <div class="image">
-        <div class="intro-step-list-image">3</div>
-      </div>
-      <div class="content">
-        <div class="header">{{ _("Solicita acceso") }}</div>
-        <div class="description">
-          {{ _("Las cuentas las crea la administración. Si necesitas publicar, contacta a tu unidad académica.") }}
-          <a href="/login">{{ _("Acceso institucional") }}</a>.
-        </div>
-      </div>
+      <article class="unae-feature-card">
+        <span class="unae-feature-icon"><i class="compass outline icon" aria-hidden="true"></i></span>
+        <h3>{{ _("Explora") }}</h3>
+        <p>{{ _("Busca tesis, artículos, informes y conjuntos de datos de la comunidad académica con filtros por tipo, fecha y licencia.") }}</p>
+        <a class="unae-link" href="{{ url_for('invenio_search_ui.search') }}">
+          {{ _("Ir al buscador") }} <i class="arrow right icon" aria-hidden="true"></i>
+        </a>
+      </article>
+
+      <article class="unae-feature-card">
+        <span class="unae-feature-icon"><i class="cloud upload alternate icon" aria-hidden="true"></i></span>
+        <h3>{{ _("Publica") }}</h3>
+        <p>{{ _("Si tienes cuenta institucional, deposita tus trabajos, adjunta los archivos y compártelos con licencias abiertas.") }}</p>
+        <a class="unae-link" href="/me/uploads">
+          {{ _("Mis envíos") }} <i class="arrow right icon" aria-hidden="true"></i>
+        </a>
+      </article>
+
+      <article class="unae-feature-card">
+        <span class="unae-feature-icon"><i class="user plus icon" aria-hidden="true"></i></span>
+        <h3>{{ _("Solicita acceso") }}</h3>
+        <p>{{ _("Las cuentas las crea la administración. Si necesitas publicar, contacta a tu unidad académica para habilitar tu perfil.") }}</p>
+        <a class="unae-link" href="{{ url_for_security('login') }}">
+          {{ _("Acceso institucional") }} <i class="arrow right icon" aria-hidden="true"></i>
+        </a>
+      </article>
+
     </div>
   </div>
 </section>

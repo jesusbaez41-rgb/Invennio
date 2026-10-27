@@ -9,6 +9,62 @@ The invenio CLI commands are Python-based, so they work in Docker Hardened Image
 import os
 import subprocess
 import sys
+import urllib.error
+import urllib.request
+
+
+SEARCH_HOST = os.environ.get("SEARCH_HOST", "search:9200")
+SEARCH_INDEX_PREFIX = os.environ.get("INVENIO_SEARCH_INDEX_PREFIX", "invenio-rdm-")
+
+# Search objects that are NOT created by "invenio index init" but are required
+# at runtime: the job-logs data stream (data-stream-only template) and the
+# statistics aggregation indices referenced on record create/delete/download.
+SEARCH_DATA_STREAMS = [SEARCH_INDEX_PREFIX + "job-logs"]
+SEARCH_INDICES = [
+    SEARCH_INDEX_PREFIX + "stats-record-view",
+    SEARCH_INDEX_PREFIX + "stats-file-download",
+]
+
+
+def _search_request(method, path):
+    """Perform a raw HTTP request against OpenSearch and return (status, body)."""
+    url = f"http://{SEARCH_HOST}{path}"
+    request = urllib.request.Request(url, method=method)
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            return response.status, response.read().decode(errors="replace")
+    except urllib.error.HTTPError as error:
+        return error.code, error.read().decode(errors="replace")
+
+
+def ensure_search_objects():
+    """Create the data streams and indices not covered by "invenio index init"."""
+    for data_stream in SEARCH_DATA_STREAMS:
+        status, body = _search_request(
+            "PUT", f"/_data_stream/{data_stream}"
+        )
+        if status in (200, 400) and "resource_already_exists_exception" in body:
+            print(f"Data stream already exists: {data_stream}")
+        elif status == 200:
+            print(f"Created data stream: {data_stream}")
+        else:
+            print(
+                f"Warning: could not create data stream {data_stream} "
+                f"(HTTP {status}): {body[:200]}",
+                file=sys.stderr,
+            )
+    for index in SEARCH_INDICES:
+        status, body = _search_request("PUT", f"/{index}")
+        if status == 200:
+            print(f"Created index: {index}")
+        elif "resource_already_exists_exception" in body:
+            print(f"Index already exists: {index}")
+        else:
+            print(
+                f"Warning: could not create index {index} "
+                f"(HTTP {status}): {body[:200]}",
+                file=sys.stderr,
+            )
 
 
 def run_command(cmd, check=True, capture_output=False):
@@ -130,6 +186,8 @@ def main():
         print("Dropping and re-creating indices...")
         run_command(["invenio", "index", "destroy", "--force", "--yes-i-know"])
         run_command(["invenio", "index", "init"])
+        print("Creating search objects not covered by index init...")
+        ensure_search_objects()
 
         print("Database and search setup completed.")
 

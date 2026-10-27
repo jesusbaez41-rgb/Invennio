@@ -1,57 +1,78 @@
 {# -*- coding: utf-8 -*-
-   Repositorio UNAE Análisis — login institucional.
-   Solo textos; mismos formularios y rutas (funcionalidad intacta).
+
+  Repositorio UNAE Análisis — acceso institucional.
+
+  Se conservan los formularios, campos y rutas de Flask-Security; solo cambia la
+  presentación (tarjeta de dos paneles con la identidad institucional).
 #}
 {%- extends config.ACCOUNTS_COVER_TEMPLATE %}
 {% from "invenio_accounts/_macros.html" import render_field, form_errors %}
 
-{% block page_body %}
-  <div class="ui padded segments big form">
-    <div class="ui login segment padded">
-      <div class="divider hidden"></div>
-      {%- block form_header %}
-        <h1 class="ui small login header">{{ _('Acceso institucional') }}</h1>
-        <p class="text-muted">{{ _('Repositorio UNAE Análisis — ingresa con tu cuenta institucional. Las cuentas las crea la administración.') }}</p>
-      {%- endblock form_header %}
+{#- La cabecera del cover se sustituye por la marca del panel lateral #}
+{%- block page_header %}{% endblock page_header %}
 
-      {%- block form_outer %}
-        {%- if config.ACCOUNTS_LOCAL_LOGIN_ENABLED %}
-          {%- with form = login_user_form %}
-            <form action="{{ url_for_security('login') }}" method="POST"
-                  name="login_user_form" class="ui big form">
-              {{ form.hidden_tag() }}
-              {{ render_field(form.email, icon="user icon", autofocus=True, errormsg='email' in form.errors) }}
-              {{ render_field(form.password, icon="lock icon", errormsg='password' in form.errors) }}
-              <button type="submit" class="ui fluid large submit primary button">
-                <i class="ui sign-in icon" aria-hidden="true"></i>{{ _('Ingresar') }}
-              </button>
-            </form>
-          {%- endwith %}
-        {%- endif %}
-      {%- endblock form_outer %}
-      <div class="divider hidden"></div>
-    </div>
+{% block page_body %}
+<div class="unae-auth">
+
+  <aside class="unae-auth-brand">
+    <a class="unae-auth-logo" href="/">
+      <img src="{{ url_for('static', filename='images/mspbs-mp-logo.jpg') }}"
+           alt="{{ _('Ministerio de Salud Pública y Bienestar Social') }}">
+    </a>
+    <h1>{{ _(config.THEME_SITENAME) }}</h1>
+    <p>{{ _("Plataforma institucional para preservar, compartir y descubrir la producción académica y científica.") }}</p>
+    <ul>
+      <li><i class="unlock alternate icon" aria-hidden="true"></i>{{ _("Acceso abierto al conocimiento") }}</li>
+      <li><i class="certificate icon" aria-hidden="true"></i>{{ _("Identificadores persistentes y versionado") }}</li>
+      <li><i class="archive icon" aria-hidden="true"></i>{{ _("Preservación digital a largo plazo") }}</li>
+    </ul>
+  </aside>
+
+  <section class="unae-auth-form">
+    <h2>{{ _('Acceso institucional') }}</h2>
+    <p class="unae-auth-lead">
+      {{ _('Ingresa con tu cuenta institucional. Las cuentas las crea la administración del repositorio.') }}
+    </p>
+
+    {{ form_errors(login_user_form) }}
+
+    {%- block form_outer %}
+      {%- if config.ACCOUNTS_LOCAL_LOGIN_ENABLED %}
+        {%- with form = login_user_form %}
+          <form action="{{ url_for_security('login') }}" method="POST"
+                name="login_user_form" class="ui big form">
+            {{ form.hidden_tag() }}
+            {{ render_field(form.email, icon="user icon", autofocus=True, errormsg='email' in form.errors) }}
+            {{ render_field(form.password, icon="lock icon", errormsg='password' in form.errors) }}
+            <button type="submit" class="ui fluid large submit primary button">
+              <i class="ui sign-in icon" aria-hidden="true"></i>{{ _('Ingresar') }}
+            </button>
+          </form>
+        {%- endwith %}
+      {%- endif %}
+    {%- endblock form_outer %}
 
     {%- block registerable %}
       {%- if security.registerable %}
-        <p class="ui primary segment padded text-muted">
-            {% trans sitename=config.ACCOUNTS_SITENAME %}New to {{ sitename }}?{% endtrans %}
-            <a href="{{ url_for_security('register', next=request.args.get('next')) }}">{{ _('Sign up') }}</a>
+        <p class="unae-auth-alt">
+          {% trans sitename=config.ACCOUNTS_SITENAME %}New to {{ sitename }}?{% endtrans %}
+          <a href="{{ url_for_security('register', next=request.args.get('next')) }}">{{ _('Sign up') }}</a>
         </p>
       {%- else %}
-        <p class="ui primary segment padded text-muted">
+        <p class="unae-auth-alt">
           {{ _('¿Necesitas una cuenta? Solicítala a la administración de tu unidad académica.') }}
         </p>
       {%- endif %}
     {%- endblock registerable %}
-  </div>
 
-  {%- block recoverable %}
-    {%- if security.recoverable %}
-      <div class="ui basic segment padded">
-        <a class="ui inverted header tiny"
-           href="{{ url_for_security('forgot_password') }}">{{ _('Forgot password?') }}</a>
-      </div>
-    {%- endif %}
-  {%- endblock recoverable %}
+    {%- block recoverable %}
+      {%- if security.recoverable %}
+        <div class="unae-auth-links">
+          <a href="{{ url_for_security('forgot_password') }}">{{ _('Forgot password?') }}</a>
+        </div>
+      {%- endif %}
+    {%- endblock recoverable %}
+  </section>
+
+</div>
 {% endblock page_body %}

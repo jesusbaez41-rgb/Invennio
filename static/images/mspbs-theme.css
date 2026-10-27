@@ -1,0 +1,230 @@
+/* =========================================================================
+   Repositorio UNAE Análisis — Tema institucional (estilo MITIC)
+   Paleta y estilos copiados de https://mitic.gov.py/ :
+     azul primario #2ea3f2, fuente Montserrat/Open Sans, fondo limpio blanco.
+   Logo embebido: Ministerio de Salud Pública y Bienestar Social (Paraguay)
+                  https://www.mspbs.gov.py/
+   Diseño: responsivo, cabecera con logo MSPBS, navegación accesible.
+   ========================================================================= */
+
+/* ---------- Variables de paleta (estilo MITIC) ---------- */
+:root {
+  --mitic-blue: #2ea3f2;
+  --mitic-blue-dark: #1959ff;
+  --mitic-navy: #222D55;
+  --mitic-text: #19232d;
+  --mitic-muted: #666;
+  --mitic-white: #ffffff;
+  --mitic-bg: #ececec;
+  --mitic-border: #ddd;
+  --mitic-red-accent: #EA2428;   /* detalle del logo MSPBS */
+  --font-main: 'Montserrat', 'Open Sans', Arial, Helvetica, sans-serif;
+}
+
+/* ---------- Reset y base ---------- */
+* { box-sizing: border-box; }
+html { font-size: 16px; }
+body {
+  font-family: var(--font-main);
+  color: var(--mitic-text);
+  background: var(--mitic-bg);
+  margin: 0;
+  line-height: 1.6;
+}
+a { color: var(--mitic-blue); text-decoration: none; }
+a:hover { color: var(--mitic-blue-dark); text-decoration: underline; }
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-main);
+  color: var(--mitic-navy);
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+}
+h1 { font-size: 2rem; }
+h2 { font-size: 1.75rem; }
+h3 { font-size: 1.5rem; }
+h4 { font-size: 1.25rem; }
+p { margin: 0 0 1rem; }
+ul, ol { margin: 0 0 1rem 1.5rem; }
+img { max-width: 100%; height: auto; display: block; }
+.container, .wrap { max-width: 1200px; margin: 0 auto; padding: 0 1rem; }
+
+/* ---------- Cabecera institucional (estilo MITIC) ---------- */
+.main-head {
+  background: var(--mitic-white);
+  border-bottom: 6px solid var(--mitic-blue);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+.main-head header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 0;
+}
+.main-head .logo img {
+  max-height: 70px;
+  width: auto;
+}
+.main-head .site-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--mitic-navy);
+  margin: 0;
+  line-height: 1.2;
+}
+.main-head .site-title span {
+  color: var(--mitic-blue);
+}
+
+/* Barra superior estilo MITIC */
+.top-bar {
+  background: var(--mitic-navy);
+  border-bottom: 5px solid var(--mitic-blue);
+  color: #fff;
+  font-size: 0.9rem;
+}
+.top-bar a { color: #fff; }
+.top-bar .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.75rem; padding: 0.5rem 0; }
+.top-bar .contact, .top-bar .search, .top-bar .social { display: flex; align-items: center; gap: 0.5rem; }
+.top-bar .search input {
+  padding: 0.35rem 0.6rem; border: none; border-radius: 4px; font-size: 0.9rem;
+}
+.top-bar .search button {
+  background: var(--mitic-blue); color: #fff; border: none; border-radius: 4px;
+  padding: 0.35rem 0.8rem; cursor: pointer; font-weight: 600;
+}
+.top-bar .search button:hover { background: var(--mitic-blue-dark); }
+
+/* Navegación principal */
+.navigation { background: var(--mitic-white); border-top: 1px solid var(--mitic-border); }
+.navigation .menu {
+  display: flex; flex-wrap: wrap; margin: 0; padding: 0; list-style: none;
+}
+.navigation .menu > li {
+  position: relative; margin: 0;
+}
+.navigation .menu > li > a {
+  display: block; padding: 0.85rem 1.1rem; color: var(--mitic-navy);
+  background: #fff; font-weight: 600; font-size: 0.95rem;
+  border-bottom: 3px solid transparent;
+}
+.navigation .menu > li > a:hover,
+.navigation .menu > li > a:focus {
+  color: var(--mitic-blue); border-bottom-color: var(--mitic-blue); text-decoration: none;
+  background: #f7f9fc;
+}
+.navigation .menu .sub-menu {
+  position: absolute; top: 100%; left: 0;
+  display: none; min-width: 220px; background: var(--mitic-white);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 100;
+  border-top: 4px solid var(--mitic-blue);
+}
+.navigation .menu .sub-menu li { border-bottom: 1px solid #eee; }
+.navigation .menu .sub-menu a {
+  display: block; padding: 0.6rem 1rem; color: var(--mitic-text);
+  font-size: 0.9rem; font-weight: 500;
+}
+.navigation .menu .sub-menu a:hover { background: #f4f4f4; color: var(--mitic-blue); }
+.navigation .menu > li:hover > .sub-menu { display: block; }
+
+/* Menú móvil (hamburguesa) */
+.mobile {
+  display: none; background: var(--mitic-blue); padding: 0.6rem 1rem; color: #fff;
+  font-weight: 700; text-transform: uppercase; font-size: 0.9rem; border-radius: 4px;
+  cursor: pointer; margin: 0.5rem 0;
+}
+.mobile .hamburger { margin-left: 0.5rem; background: var(--mitic-navy); color: #fff;
+  padding: 0.2rem 0.5rem; border-radius: 3px; }
+
+/* ---------- Pie de página institucional ---------- */
+.unae-footer {
+  background: var(--mitic-navy); color: rgba(255,255,255,0.9);
+  padding: 2.5rem 0 1rem; margin-top: 3rem;
+  border-top: 6px solid var(--mitic-blue);
+}
+.unae-footer a { color: rgba(255,255,255,0.9); }
+.unae-footer a:hover { color: var(--mitic-blue); text-decoration: underline; }
+.unae-footer h4 {
+  color: #fff; font-size: 1rem; margin-bottom: 0.9rem;
+  text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700;
+}
+.unae-footer p, .unae-footer li { color: rgba(255,255,255,0.85); font-size: 0.95rem; line-height: 1.7; margin: 0.35rem 0; }
+.unae-footer .logo-footer img { max-width: 220px; margin-bottom: 1rem; }
+
+.sub-footer {
+  background: #141c38; color: rgba(255,255,255,0.6);
+  padding: 0.9rem 0; font-size: 0.85rem; margin-top: 2rem;
+  border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+/* ---------- Tarjetas / sección introductoria ---------- */
+.section-title {
+  color: var(--mitic-navy); text-align: center; margin-bottom: 2rem;
+  text-transform: uppercase; letter-spacing: 0.08em; font-size: 1.4rem;
+  border-bottom: 3px solid var(--mitic-blue); display: inline-block;
+  padding-bottom: 0.4rem; margin-left: auto; margin-right: auto;
+}
+.ui.card {
+  border: 1px solid var(--mitic-border); border-radius: 8px; overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+  background: #fff; height: 100%;
+}
+.ui.card:hover { transform: translateY(-4px); box-shadow: 0 8px 20px rgba(0,0,0,0.12); }
+.ui.card .image { background: #f4f4f4; text-align: center; font-weight: 700;
+  color: var(--mitic-blue); font-size: 1.2rem; padding: 1.5rem 0; }
+.ui.card .content { padding: 1rem; }
+.ui.card .content .header { font-size: 1.1rem; color: var(--mitic-navy); margin-bottom: 0.5rem; }
+.ui.card .content .description { font-size: 0.95rem; color: var(--mitic-text); }
+
+/* ---------- Botones ---------- */
+.ui.primary.button, .ui.button.primary, button.primary, .btn-primary {
+  background: var(--mitic-blue) !important; color: #fff !important;
+  border: none !important; border-radius: 4px !important; font-weight: 600 !important;
+}
+.ui.primary.button:hover, .btn-primary:hover { background: var(--mitic-blue-dark) !important; }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 768px) {
+  .mobile { display: block; }
+  .navigation .menu { display: none; flex-direction: column; width: 100%; }
+  .navigation .menu.open { display: flex; }
+  .navigation .menu > li { border-bottom: 1px solid #eee; }
+  .navigation .menu > li > a {
+    border: none; padding: 0.8rem 1rem; background: #fff; color: var(--mitic-text);
+    border-bottom: 1px solid #eee;
+  }
+  .navigation .menu > li > a:hover { background: #f7f9fc; color: var(--mitic-blue); }
+  .navigation .menu .sub-menu {
+    position: static; display: none; box-shadow: none; border: none;
+    background: #fafafa; padding-left: 1rem;
+  }
+  .navigation .menu > li:hover > .sub-menu { display: block; }
+  .main-head header { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+  .main-head .site-title { font-size: 1.25rem; }
+  .main-head .logo img { max-height: 55px; }
+  .top-bar .wrap { flex-direction: column; align-items: stretch; }
+  .top-bar .search { width: 100%; }
+  .top-bar .search input { flex: 1; }
+  h1 { font-size: 1.75rem; }
+  h2 { font-size: 1.5rem; }
+  h3 { font-size: 1.25rem; }
+  .section-title { font-size: 1.2rem; }
+  .unae-footer .ui.grid { grid-template-columns: 1fr !important; }
+  .unae-footer .column { margin-bottom: 1.5rem; }
+}
+@media (max-width: 480px) {
+  .container, .wrap { padding: 0 0.75rem; }
+  .top-bar { font-size: 0.8rem; }
+  .navigation .menu > li > a { padding: 0.7rem 0.8rem; font-size: 0.85rem; }
+}
+
+/* ---------- Utilidades ---------- */
+.text-center { text-align: center; }
+.mt-2 { margin-top: 2rem; }
+.mb-2 { margin-bottom: 2rem; }
+.badge {
+  display: inline-block; font-size: 0.75rem; font-weight: 700;
+  padding: 0.25rem 0.6rem; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.08em;
+}
+.badge-blue { background: var(--mitic-blue); color: #fff; }
+.badge-navy { background: var(--mitic-navy); color: #fff; }

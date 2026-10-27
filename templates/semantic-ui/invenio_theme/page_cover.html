@@ -1,0 +1,82 @@
+{# -*- coding: utf-8 -*-
+
+  Repositorio UNAE Análisis — plantilla base para páginas "cover"
+  (acceso, registro, recuperación de contraseña).
+
+  Copia de invenio_theme/page_cover.html con el sistema de diseño institucional
+  cargado en el <head>. El resto del comportamiento es idéntico.
+#}
+{% extends config.THEME_BASE_TEMPLATE %}
+
+{%- set html_css_classes=['cover-page'] %}
+{%- set body_css_classes=['ui grid doubling middle center aligned cover-page'] %}
+
+{%- block css %}
+  {{ super() }}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Source+Sans+3:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="/static/images/unae-theme.css?v=20261026-11">
+  <link rel="icon" type="image/x-icon" href="/static/images/mspbs-favicon.ico">
+  <link rel="shortcut icon" type="image/x-icon" href="/static/images/mspbs-favicon.ico">
+  <meta name="theme-color" content="#8c1618">
+{%- endblock css %}
+
+{%- block body %}
+  <div class="sixteen wide column centered">
+    {%- block site_banner %}{%- endblock site_banner %}
+
+    {%- block flashmessages %}
+      {%- from "invenio_theme/macros/messages.html" import flashed_messages with context -%}
+      {{ flashed_messages(center_text=true) }}
+    {%- endblock flashmessages %}
+
+    <div class="ui grid">
+      <div class="fourteen wide mobile eight wide tablet five wide computer centered column">
+        {% block page_header %}
+          <div class="ui basic very padded segment">
+            {%- block brand %}
+              {%- if config.THEME_LOGO %}
+                <a href="/">
+                  <img class="ui centered medium image"
+                      src="{{ url_for('static', filename=config.THEME_LOGO) }}"
+                      alt="{{ _(config.THEME_SITENAME) }}"/>
+                </a>
+              {%- elif config.THEME_SITENAME %}
+                <a href="/" class="text-center">
+                  {{ _(config.THEME_SITENAME) }}
+                </a>
+              {% endif %}
+            {%- endblock brand %}
+          </div>
+        {% endblock page_header %}
+
+        {%- block page_body %}
+          <div class="container">
+            <div class="row panel-container">
+              {% block panel %}
+                <div class="column three wide"></div>
+                <div class="column six wide">
+                  <div class="panel panel-default">
+                    <div class="panel-body">
+                      {% block panel_content %}
+                        <h3 class="centered panel-free-title">{{ panel_title }}</h3>
+                      {% endblock panel_content %}
+                    </div>
+                  </div>
+                </div>
+              {% endblock panel %}
+            </div>
+          </div>
+        {%- endblock page_body %}
+      </div>
+    </div>
+    {% block page_footer %}
+    {% endblock page_footer %}
+  </div>
+
+  {%- block javascript %}
+    {{ webpack['theme.js']}}
+  {%- endblock javascript %}
+{%- endblock body %}

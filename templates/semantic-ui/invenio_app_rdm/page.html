@@ -1,0 +1,48 @@
+{# -*- coding: utf-8 -*-
+
+  Repositorio UNAE Análisis — plantilla base de página.
+
+  Copia de invenio_app_rdm/page.html con un bloque `css` propio para cargar el
+  sistema de diseño institucional (static/images/unae-theme.css) en el <head>
+  de todas las páginas. El resto de los bloques se mantiene idéntico para no
+  alterar la funcionalidad de InvenioRDM.
+#}
+
+{%- extends "invenio_theme/page.html" -%}
+
+{%- block css %}
+  {{ super() }}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Source+Sans+3:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="/static/images/unae-theme.css?v=20261026-11">
+  <link rel="icon" type="image/x-icon" href="/static/images/mspbs-favicon.ico">
+  <link rel="shortcut icon" type="image/x-icon" href="/static/images/mspbs-favicon.ico">
+  <meta name="theme-color" content="#8c1618">
+{%- endblock css %}
+
+{%- block body_inner %}
+
+  {%- block page_header %}
+    {% include config.THEME_HEADER_TEMPLATE %}
+  {%- endblock page_header %}
+
+  <main id="main">
+    <div class="invenio-page-body">
+      {%- block page_body %}
+        {% include "invenio_theme/body.html" %}
+      {%- endblock page_body %}
+    </div>
+  </main>
+
+  {%- block page_footer %}
+    <footer id="rdm-footer-element">
+        {% include config.THEME_FOOTER_TEMPLATE %}
+      {%- block footer_bottom %}
+        {% include "invenio_app_rdm/site_footer.html" %}
+      {%- endblock footer_bottom %}
+    </footer>
+  {%- endblock page_footer %}
+
+{%- endblock body_inner %}

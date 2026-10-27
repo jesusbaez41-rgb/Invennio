@@ -1,0 +1,70 @@
+{#
+   Repositorio UNAE Análisis — pie institucional principal.
+
+   Sustituye el pie genérico de InvenioRDM por la información institucional del
+   Ministerio de Salud Pública y Bienestar Social. La barra inferior (créditos e
+   idioma) se renderiza en site_footer.html.
+#}
+
+{%- block footer_top %}
+<div class="unae-footer-main">
+  <div class="ui container">
+    <div class="unae-footer-grid">
+
+      <div class="unae-footer-brand">
+        <span class="unae-footer-chip">
+          <img src="{{ url_for('static', filename='images/mspbs-mp-logo.jpg') }}"
+               alt="{{ _('Ministerio de Salud Pública y Bienestar Social') }}">
+        </span>
+        <p class="unae-footer-site">{{ _(config.THEME_SITENAME) }}</p>
+        <p class="unae-footer-desc">
+          {{ _("Plataforma institucional para preservar, compartir y descubrir la producción académica y científica.") }}
+        </p>
+        <span class="unae-footer-badge">
+          <i class="unlock alternate icon" aria-hidden="true"></i>
+          {{ _("Ciencia abierta") }}
+        </span>
+      </div>
+
+      <div class="unae-footer-col">
+        <h4>{{ _("Repositorio") }}</h4>
+        <ul>
+          <li><a href="{{ url_for('invenio_search_ui.search') }}"><i class="search icon" aria-hidden="true"></i>{{ _("Buscar registros") }}</a></li>
+          <li><a href="/communities"><i class="users icon" aria-hidden="true"></i>{{ _("Comunidades") }}</a></li>
+          <li><a href="/me/uploads"><i class="folder open icon" aria-hidden="true"></i>{{ _("Mis envíos") }}</a></li>
+          <li><a href="/uploads/new"><i class="cloud upload alternate icon" aria-hidden="true"></i>{{ _("Depositar un trabajo") }}</a></li>
+        </ul>
+      </div>
+
+      <div class="unae-footer-col">
+        <h4>{{ _("Institucional") }}</h4>
+        <ul>
+          <li>
+            <a href="https://www.mspbs.gov.py/" target="_blank" rel="noopener noreferrer">
+              <i class="external alternate icon" aria-hidden="true"></i>{{ _("Ministerio de Salud Pública y Bienestar Social") }}
+            </a>
+          </li>
+          <li>
+            <a href="https://www.paraguay.gov.py/" target="_blank" rel="noopener noreferrer">
+              <i class="external alternate icon" aria-hidden="true"></i>{{ _("Portal Paraguay") }}
+            </a>
+          </li>
+          <li><a href="{{ url_for_security('login') }}"><i class="sign in alternate icon" aria-hidden="true"></i>{{ _("Acceso institucional") }}</a></li>
+          <li><a href="/administration/"><i class="shield alternate icon" aria-hidden="true"></i>{{ _("Administración") }}</a></li>
+        </ul>
+      </div>
+
+      <div class="unae-footer-col">
+        <h4>{{ _("Ayuda y contacto") }}</h4>
+        <p>{{ _("¿Necesitas una cuenta o asistencia para depositar? Contacta a la administración del repositorio de tu unidad académica.") }}</p>
+        <ul>
+          <li><a href="/help/search"><i class="question circle outline icon" aria-hidden="true"></i>{{ _("Centro de ayuda") }}</a></li>
+          <li><a href="/help/versioning"><i class="code branch icon" aria-hidden="true"></i>{{ _("Versionado de registros") }}</a></li>
+          <li><a href="/help/statistics"><i class="chart bar outline icon" aria-hidden="true"></i>{{ _("Estadísticas") }}</a></li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+</div>
+{%- endblock footer_top %}

@@ -1,0 +1,1999 @@
+/* ==========================================================================
+   Repositorio UNAE Análisis — sistema de diseño institucional
+   Paleta y lenguaje visual basados en https://mitic.gov.py/
+   Logotipo institucional: Ministerio de Salud Pública y Bienestar Social
+   --------------------------------------------------------------------------
+   Este archivo se carga en el <head> de todas las páginas (ver
+   templates/semantic-ui/invenio_app_rdm/page.html). No requiere rebuild.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. Tokens de diseño
+   -------------------------------------------------------------------------- */
+:root {
+  /* Marca — rojo institucional MITIC */
+  --u-brand: #ea2428;
+  --u-brand-600: #c81c21;
+  --u-brand-700: #8c1618;
+  --u-brand-soft: #fdecec;
+  --u-navy: #2a1518;
+  --u-navy-700: #3a1215;
+  --u-navy-600: #4d171a;
+  --u-teal: #8c1618;
+  --u-red: #ea2428;
+
+  /* Neutros */
+  --u-ink: #221518;
+  --u-text: #3c3234;
+  --u-muted: #6f6163;
+  --u-line: #eee2e3;
+  --u-line-strong: #dccdce;
+  --u-bg: #fdf7f7;
+  --u-surface: #ffffff;
+  --u-surface-2: #fdf9f9;
+
+  /* Tipografía */
+  --u-font-display: "Montserrat", "Segoe UI", Roboto, Arial, sans-serif;
+  --u-font-body: "Source Sans 3", "Segoe UI", Roboto, Arial, sans-serif;
+
+  /* Formas */
+  --u-radius-sm: 8px;
+  --u-radius: 12px;
+  --u-radius-lg: 18px;
+  --u-radius-xl: 26px;
+
+  /* Sombras */
+  --u-shadow-xs: 0 1px 2px rgba(74, 15, 18, 0.06);
+  --u-shadow-sm: 0 4px 12px rgba(74, 15, 18, 0.07);
+  --u-shadow: 0 12px 30px rgba(74, 15, 18, 0.10);
+  --u-shadow-lg: 0 24px 60px rgba(60, 10, 12, 0.18);
+
+  /* Layout */
+  --u-container: 1180px;
+  --u-header-h: 78px;
+}
+
+/* --------------------------------------------------------------------------
+   2. Base
+   -------------------------------------------------------------------------- */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--u-bg) !important;
+  color: var(--u-text);
+  font-family: var(--u-font-body);
+  font-size: 16px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3, h4, h5, h6,
+.ui.header {
+  font-family: var(--u-font-display);
+  color: var(--u-navy);
+  letter-spacing: -0.01em;
+}
+
+a {
+  color: var(--u-brand-700);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+a:hover,
+a:focus {
+  color: var(--u-brand-600);
+  text-decoration: none;
+}
+
+:focus-visible {
+  outline: 3px solid rgba(234, 36, 40, 0.55);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Contenedor unificado */
+.ui.container {
+  width: min(var(--u-container), calc(100% - 3rem)) !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+@media (max-width: 767px) {
+  .ui.container {
+    width: calc(100% - 2rem) !important;
+  }
+}
+
+/* Saltar al contenido */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+}
+.skip-link:focus {
+  left: 1rem;
+  top: 1rem;
+  z-index: 5000;
+}
+
+/* --------------------------------------------------------------------------
+   3. Barra institucional superior
+   -------------------------------------------------------------------------- */
+.unae-topbar {
+  background: var(--u-navy);
+  color: #f3d3d4;
+  font-family: var(--u-font-body);
+  font-size: 0.78rem;
+  letter-spacing: 0.015em;
+  border-bottom: 3px solid var(--u-brand);
+}
+
+.unae-topbar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 38px;
+  flex-wrap: wrap;
+}
+
+.unae-topbar-gov {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: #ffe4e4;
+}
+
+.unae-topbar-gov i {
+  color: var(--u-brand);
+}
+
+.unae-topbar-links {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.unae-topbar-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.65rem;
+  color: #f3d3d4;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.unae-topbar-links a:hover,
+.unae-topbar-links a:focus {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+/* --------------------------------------------------------------------------
+   4. Cabecera y navegación
+   -------------------------------------------------------------------------- */
+.theme.header {
+  box-shadow: none !important;
+}
+
+.outer-navbar {
+  background: #fff !important;
+  background-image: none !important;
+  box-shadow: 0 1px 0 var(--u-line), 0 10px 28px rgba(74, 15, 18, 0.06) !important;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.invenio-header-container {
+  padding: 0 !important;
+}
+
+#invenio-nav.ui.menu {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  min-height: var(--u-header-h);
+  margin: 0 !important;
+}
+
+/* Marca: logo MSPBS + nombre del repositorio */
+#invenio-nav .item.logo {
+  width: auto !important;
+  margin-right: 0 !important;
+  flex: 0 0 auto !important;
+}
+
+.logo-link.unae-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  width: auto !important;
+  padding: 0.5rem 0 !important;
+  line-height: 1.15;
+}
+
+.unae-brand-logo {
+  display: block;
+  height: 46px;
+  width: auto;
+  max-width: 220px;
+  object-fit: contain;
+}
+
+.unae-brand-sep {
+  width: 1px;
+  height: 38px;
+  background: var(--u-line-strong);
+  flex: none;
+}
+
+.unae-brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+}
+
+.unae-brand-text strong {
+  font-family: var(--u-font-display);
+  font-size: 1.02rem;
+  font-weight: 800;
+  color: var(--u-navy);
+  letter-spacing: -0.015em;
+  white-space: nowrap;
+}
+
+.unae-brand-text small {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--u-muted);
+  white-space: nowrap;
+}
+
+/* Enlaces del menú (escritorio) */
+@media (min-width: 769px) {
+  #invenio-menu.ui.menu {
+    display: flex !important;
+    align-items: center;
+    gap: 0.15rem;
+    margin-left: 1.5rem !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    position: static !important;
+    height: auto !important;
+    max-width: none !important;
+    overflow: visible !important;
+  }
+
+  #invenio-menu.ui.menu > .item {
+    padding: 0 !important;
+    margin: 0 !important;
+    width: auto !important;
+  }
+
+  #invenio-menu.ui.menu > .item > a,
+  #invenio-menu.ui.menu > .item .dropdown-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.55rem 0.9rem !important;
+    border-radius: 8px;
+    color: var(--u-navy) !important;
+    font-family: var(--u-font-body);
+    font-size: 0.94rem;
+    font-weight: 600;
+    line-height: 1.2;
+  }
+
+  #invenio-menu.ui.menu > .item > a:hover,
+  #invenio-menu.ui.menu > .item > a:focus,
+  #invenio-menu.ui.menu > .item.active > a,
+  #invenio-menu.ui.menu > .item .dropdown-toggle:hover {
+    background: var(--u-brand-soft) !important;
+    color: var(--u-brand-700) !important;
+  }
+
+  #invenio-menu.ui.menu .right.menu {
+    margin-left: auto !important;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  #invenio-menu.ui.menu .right.menu > form {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+}
+
+/* Buscador de la cabecera */
+#header-search-bar .ui.icon.input input {
+  border: 1px solid var(--u-line) !important;
+  border-radius: 999px !important;
+  padding: 0.6rem 2.6rem 0.6rem 1rem !important;
+  background: var(--u-surface-2) !important;
+  font-size: 0.9rem !important;
+  min-width: 210px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+#header-search-bar .ui.icon.input input:focus {
+  border-color: var(--u-brand) !important;
+  box-shadow: 0 0 0 3px rgba(234, 36, 40, 0.15);
+  background: #fff !important;
+}
+
+#header-search-bar .ui.icon.input > i.icon {
+  background: var(--u-brand) !important;
+  color: #fff !important;
+  border-radius: 0 999px 999px 0 !important;
+  opacity: 1 !important;
+  width: 2.55rem;
+  height: 100%;
+  top: 0;
+  right: 0;
+}
+
+/* Botón de acceso */
+#invenio-nav .auth-button,
+#invenio-nav .ui.button.auth-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: var(--u-brand) !important;
+  color: #fff !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  padding: 0.62rem 1.15rem !important;
+  font-family: var(--u-font-body);
+  font-weight: 700 !important;
+  font-size: 0.9rem !important;
+  box-shadow: 0 6px 16px rgba(234, 36, 40, 0.35);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+#invenio-nav .auth-button:hover,
+#invenio-nav .ui.button.auth-button:hover {
+  background: var(--u-brand-600) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(234, 36, 40, 0.4);
+}
+
+#invenio-nav .auth-icon {
+  margin: 0 !important;
+}
+
+/* Botón hamburguesa */
+#rdm-burger-toggle #rdm-burger-menu-icon {
+  border-radius: 10px;
+}
+
+#rdm-burger-toggle #rdm-burger-menu-icon .navicon,
+#rdm-burger-toggle #rdm-burger-menu-icon .navicon:before,
+#rdm-burger-toggle #rdm-burger-menu-icon .navicon:after {
+  background: var(--u-navy);
+}
+
+/* Panel móvil */
+@media (max-width: 768px) {
+  .unae-topbar-gov {
+    font-size: 0.72rem;
+  }
+
+  .unae-topbar-links a {
+    padding: 0.25rem 0.45rem;
+    font-size: 0.74rem;
+  }
+
+  #invenio-nav.ui.menu {
+    min-height: 66px;
+  }
+
+  .unae-brand-logo {
+    height: 38px;
+    max-width: 165px;
+  }
+
+  .unae-brand-sep,
+  .unae-brand-text small {
+    display: none;
+  }
+
+  .unae-brand-text strong {
+    font-size: 0.9rem;
+    white-space: normal;
+  }
+}
+
+@media (max-width: 640px) {
+  .unae-topbar-inner {
+    gap: 0.5rem;
+  }
+
+  .unae-topbar-gov {
+    font-size: 0.68rem;
+    max-width: 44vw;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .unae-topbar-gov .py.flag {
+    display: none;
+  }
+
+  .unae-topbar-links {
+    gap: 0;
+  }
+
+  .unae-topbar-links a {
+    font-size: 0;
+    padding: 0.3rem 0.5rem;
+  }
+
+  .unae-topbar-links a i.icon {
+    font-size: 0.92rem;
+    margin: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .unae-brand-logo {
+    height: 34px;
+    max-width: 132px;
+  }
+
+  .unae-brand-text {
+    display: block;
+  }
+
+  .unae-brand-text strong {
+    font-size: 0.78rem;
+    line-height: 1.15;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   5. Hero de la portada
+   -------------------------------------------------------------------------- */
+#frontpage-search-bar.frontpage-header,
+#frontpage-search-bar.unae-hero {
+  display: block !important;
+  height: auto !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  background:
+    radial-gradient(900px 480px at 85% -10%, rgba(234, 36, 40, 0.45), transparent 60%),
+    radial-gradient(700px 400px at 0% 110%, rgba(140, 22, 24, 0.22), transparent 60%),
+    linear-gradient(135deg, #3d0c0e 0%, #6b1215 45%, #8c1618 100%) !important;
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+}
+
+#frontpage-search-bar.frontpage-header::after,
+#frontpage-search-bar.unae-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse at 65% 30%, #000 20%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse at 65% 30%, #000 20%, transparent 75%);
+  pointer-events: none;
+}
+
+.unae-hero {
+  position: relative;
+  z-index: 1;
+  padding: 4.25rem 0 4.75rem;
+}
+
+.unae-hero-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.12fr) minmax(0, 0.88fr);
+  gap: 3.5rem;
+  align-items: center;
+}
+
+.unae-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.9rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: #ffdada;
+  font-family: var(--u-font-body);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  backdrop-filter: blur(6px);
+}
+
+.unae-eyebrow i {
+  color: #ffb3b3;
+  margin: 0 !important;
+}
+
+.unae-hero-title {
+  margin: 1.25rem 0 0;
+  font-family: var(--u-font-display);
+  font-size: clamp(2.2rem, 4.3vw, 3.35rem);
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+  color: #fff !important;
+}
+
+.unae-hero-title span {
+  display: block;
+  margin-top: 0.9rem;
+  font-family: var(--u-font-body);
+  font-size: clamp(1rem, 1.65vw, 1.16rem);
+  font-weight: 400;
+  line-height: 1.55;
+  letter-spacing: 0;
+  color: rgba(226, 240, 255, 0.82);
+  max-width: 46ch;
+}
+
+.unae-search {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 2rem 0 0;
+  padding: 0.4rem 0.4rem 0.4rem 1.1rem;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: var(--u-shadow-lg);
+  max-width: 620px;
+}
+
+.unae-search > i.search.icon {
+  color: var(--u-muted);
+  font-size: 1.05rem;
+  margin: 0 !important;
+}
+
+.unae-search input[type="text"] {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 0 !important;
+  outline: 0;
+  background: transparent !important;
+  padding: 0.75rem 0.35rem !important;
+  font-family: var(--u-font-body);
+  font-size: 1rem;
+  color: var(--u-ink);
+  box-shadow: none !important;
+}
+
+.unae-search input[type="text"]::placeholder {
+  color: #94a3b8;
+}
+
+.unae-search-btn {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border: 0;
+  cursor: pointer;
+  background: linear-gradient(135deg, var(--u-brand) 0%, var(--u-brand-700) 100%);
+  color: #fff;
+  font-family: var(--u-font-body);
+  font-size: 0.95rem;
+  font-weight: 700;
+  padding: 0.8rem 1.35rem;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(15, 111, 176, 0.35);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.unae-search-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 26px rgba(15, 111, 176, 0.45);
+}
+
+.unae-search-btn i {
+  margin: 0 !important;
+}
+
+.unae-hero-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 1.35rem;
+}
+
+.unae-hero-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.07);
+  color: #ffdede;
+  font-size: 0.85rem;
+  font-weight: 600;
+  backdrop-filter: blur(4px);
+}
+
+.unae-hero-links a:hover,
+.unae-hero-links a:focus {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.4);
+  color: #fff;
+}
+
+.unae-hero-links i {
+  margin: 0 !important;
+  color: #ffc2c2;
+}
+
+/* Tarjeta lateral del hero */
+.unae-hero-card {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: var(--u-radius-xl);
+  padding: 1.6rem;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 24px 60px rgba(4, 15, 35, 0.35);
+}
+
+.unae-hero-photo {
+  margin: 0;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 10px 26px rgba(20, 5, 6, 0.28);
+}
+
+.unae-hero-photo img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+}
+
+.unae-hero-photo figcaption {
+  padding: 0.55rem 0.85rem;
+  font-family: var(--u-font-body);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--u-text);
+  background: #fff;
+}
+
+.unae-hero-card-title {
+  margin: 1.1rem 0 0.4rem;
+  font-family: var(--u-font-body);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #f0bcbd;
+}
+
+.unae-pillars {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.unae-pillars li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.8rem;
+  padding: 0.85rem 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.unae-pillars li:first-child {
+  border-top: 0;
+}
+
+.unae-pillars i {
+  flex: none;
+  width: 2.1rem;
+  height: 2.1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: rgba(234, 36, 40, 0.2);
+  color: #ffc2c2;
+  font-size: 1rem;
+  margin: 0 !important;
+}
+
+.unae-pillars strong {
+  display: block;
+  font-family: var(--u-font-body);
+  font-size: 0.94rem;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.25;
+}
+
+.unae-pillars span {
+  display: block;
+  font-size: 0.8rem;
+  color: rgba(219, 234, 254, 0.7);
+  margin-top: 0.1rem;
+}
+
+/* --------------------------------------------------------------------------
+   6. Sección de características (intro)
+   -------------------------------------------------------------------------- */
+.unae-features {
+  position: relative;
+  z-index: 2;
+  margin-top: 0;
+  padding: 4.5rem 0 1rem;
+}
+
+.unae-features-head {
+  text-align: center;
+  max-width: 640px;
+  margin: 0 auto 2.25rem;
+  padding: 0 1rem;
+}
+
+.unae-kicker {
+  display: inline-block;
+  font-family: var(--u-font-body);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--u-brand-700);
+  margin-bottom: 0.6rem;
+}
+
+.unae-features-head h2 {
+  margin: 0 0 0.65rem;
+  font-size: clamp(1.5rem, 2.6vw, 2.05rem);
+  font-weight: 800;
+  line-height: 1.18;
+  color: var(--u-navy);
+}
+
+.unae-features-head p {
+  margin: 0;
+  color: var(--u-muted);
+  font-size: 1rem;
+}
+
+.unae-features-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.35rem;
+}
+
+.unae-feature-card {
+  position: relative;
+  background: #fff;
+  border: 1px solid var(--u-line);
+  border-radius: var(--u-radius-lg);
+  padding: 1.9rem 1.7rem 1.6rem;
+  box-shadow: var(--u-shadow);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  overflow: hidden;
+}
+
+.unae-feature-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--u-brand), var(--u-teal));
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+
+.unae-feature-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 22px 46px rgba(74, 15, 18, 0.14);
+  border-color: #f6d4d4;
+}
+
+.unae-feature-card:hover::before {
+  opacity: 1;
+}
+
+.unae-feature-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 14px;
+  background: var(--u-brand-soft);
+  color: var(--u-brand-700);
+  font-size: 1.3rem;
+  margin-bottom: 1.1rem;
+}
+
+.unae-feature-card:nth-child(2) .unae-feature-icon {
+  background: #fdecec;
+  color: #8c1618;
+}
+
+.unae-feature-card:nth-child(3) .unae-feature-icon {
+  background: #f6e7e7;
+  color: #b02a2d;
+}
+
+.unae-feature-card h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.18rem;
+  font-weight: 700;
+  color: var(--u-navy);
+}
+
+.unae-feature-card p {
+  margin: 0 0 1.2rem;
+  color: var(--u-muted);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.unae-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--u-brand-700);
+}
+
+.unae-link i {
+  margin: 0 !important;
+  transition: transform 0.15s ease;
+}
+
+.unae-link:hover i {
+  transform: translateX(3px);
+}
+
+/* Secciones genéricas de la portada */
+.section-title,
+.ui.header.section-title {
+  font-family: var(--u-font-display);
+  font-weight: 800;
+  color: var(--u-navy);
+  letter-spacing: -0.02em;
+}
+
+#communities-carousel h2.ui.header,
+#records-list h2.ui.header {
+  font-family: var(--u-font-display);
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--u-navy);
+  margin-top: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+/* --------------------------------------------------------------------------
+   7. Tarjetas, listados y resultados
+   -------------------------------------------------------------------------- */
+.ui.card {
+  border: 1px solid var(--u-line);
+  border-radius: var(--u-radius-lg) !important;
+  box-shadow: var(--u-shadow-sm) !important;
+  background: #fff;
+  overflow: hidden;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.ui.card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--u-shadow) !important;
+}
+
+.ui.card .content {
+  padding: 1.15rem 1.25rem !important;
+}
+
+.ui.card .content .header {
+  font-family: var(--u-font-display);
+  color: var(--u-navy);
+  font-weight: 700;
+}
+
+.ui.items > .item {
+  background: #fff;
+  border: 1px solid var(--u-line);
+  border-radius: var(--u-radius);
+  padding: 1.15rem 1.25rem !important;
+  margin-bottom: 0.9rem !important;
+  box-shadow: var(--u-shadow-xs);
+  transition: box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.ui.items > .item:hover {
+  border-color: #f6d4d4;
+  box-shadow: var(--u-shadow-sm);
+}
+
+.ui.items > .item .header a,
+.ui.items > .item .ui.header a {
+  color: var(--u-navy);
+  font-family: var(--u-font-display);
+  font-weight: 700;
+}
+
+.ui.items > .item .description {
+  color: var(--u-text);
+}
+
+.ui.items > .item .meta,
+.ui.items > .item .extra {
+  color: var(--u-muted);
+}
+
+/* Etiquetas */
+.ui.label,
+.ui.basic.label {
+  border-radius: 999px !important;
+  font-family: var(--u-font-body);
+  font-weight: 600;
+  border-color: var(--u-line);
+}
+
+.ui.label.blue,
+.ui.blue.labels .label,
+a.ui.blue.label {
+  background: var(--u-brand-soft) !important;
+  color: var(--u-brand-700) !important;
+  border-color: #f6d4d4 !important;
+}
+
+/* Facetas / barra lateral del buscador */
+.ui.accordion .title,
+.ui.accordion .ui.title {
+  font-family: var(--u-font-body);
+  font-weight: 700;
+  color: var(--u-navy);
+}
+
+.ui.checkbox label,
+.ui.checkbox + label {
+  color: var(--u-text);
+}
+
+.ui.checkbox input:checked ~ label::before,
+.ui.checkbox input:checked:focus ~ label::before {
+  background: var(--u-brand) !important;
+  border-color: var(--u-brand) !important;
+}
+
+/* Segmentos y cajas */
+.ui.segment {
+  border-radius: var(--u-radius) !important;
+  border-color: var(--u-line);
+  box-shadow: none;
+}
+
+/* Paginación */
+.ui.pagination.menu .item,
+.ui.pagination.menu .active.item {
+  border-radius: 8px !important;
+}
+
+.ui.pagination.menu .active.item {
+  background: var(--u-brand) !important;
+  color: #fff !important;
+}
+
+/* --------------------------------------------------------------------------
+   8. Formularios y botones
+   -------------------------------------------------------------------------- */
+.ui.form input[type="text"],
+.ui.form input[type="email"],
+.ui.form input[type="password"],
+.ui.form input[type="number"],
+.ui.form input[type="date"],
+.ui.form textarea,
+.ui.form select,
+input.ui.input,
+.ui.input > input {
+  border: 1px solid var(--u-line-strong) !important;
+  border-radius: var(--u-radius-sm) !important;
+  background: #fff !important;
+  padding: 0.7rem 0.85rem !important;
+  font-family: var(--u-font-body) !important;
+  color: var(--u-ink) !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ui.form input:focus,
+.ui.form textarea:focus,
+.ui.form select:focus,
+.ui.input > input:focus {
+  border-color: var(--u-brand) !important;
+  box-shadow: 0 0 0 3px rgba(234, 36, 40, 0.16) !important;
+  outline: none;
+}
+
+.ui.form .field > label {
+  font-family: var(--u-font-body);
+  font-weight: 700 !important;
+  color: var(--u-navy) !important;
+  font-size: 0.86rem !important;
+}
+
+.ui.button,
+.ui.button.primary,
+button.ui.button {
+  border-radius: var(--u-radius-sm) !important;
+  font-family: var(--u-font-body) !important;
+  font-weight: 700 !important;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.ui.primary.button,
+.ui.button.primary,
+.ui.positive.button {
+  background: var(--u-brand) !important;
+  color: #fff !important;
+  box-shadow: 0 6px 16px rgba(234, 36, 40, 0.28);
+}
+
+.ui.primary.button:hover,
+.ui.button.primary:hover,
+.ui.positive.button:hover {
+  background: var(--u-brand-600) !important;
+  transform: translateY(-1px);
+}
+
+.ui.basic.button,
+.ui.button.basic {
+  box-shadow: inset 0 0 0 1px var(--u-line-strong) !important;
+  color: var(--u-text) !important;
+  background: #fff !important;
+}
+
+.ui.basic.button:hover {
+  box-shadow: inset 0 0 0 1px var(--u-brand) !important;
+  color: var(--u-brand-700) !important;
+}
+
+/* Mensajes */
+.ui.message {
+  border-radius: var(--u-radius) !important;
+  box-shadow: none !important;
+  background: var(--u-surface-2) !important;
+  color: var(--u-text) !important;
+  border: 1px solid var(--u-line);
+}
+
+.ui.info.message,
+.ui.message.info {
+  background: #fdf7f7 !important;
+  color: var(--u-text) !important;
+  border-left: 4px solid var(--u-brand) !important;
+}
+
+.ui.info.message .header,
+.ui.message.info .header {
+  color: var(--u-brand-700) !important;
+}
+
+.ui.success.message,
+.ui.message.success {
+  background: #f4fbf7 !important;
+  color: #1f6b4a !important;
+  border-left: 4px solid #2f9e6b !important;
+}
+
+.ui.warning.message,
+.ui.message.warning {
+  background: #fffaf0 !important;
+  color: #8a5a00 !important;
+  border-left: 4px solid #e0a500 !important;
+}
+
+.ui.error.message,
+.ui.message.error,
+.ui.negative.message {
+  background: #fdf1f1 !important;
+  color: var(--u-brand-700) !important;
+  border-left: 4px solid var(--u-brand) !important;
+}
+
+/* --------------------------------------------------------------------------
+   9. Pie de página
+   -------------------------------------------------------------------------- */
+#rdm-footer-element {
+  background: var(--u-navy);
+  color: #eccfd0;
+  margin-top: 4.5rem !important;
+  padding-top: 0 !important;
+  font-family: var(--u-font-body);
+  font-size: 0.93rem;
+}
+
+#rdm-footer-element a,
+#rdm-footer-element a:focus,
+#rdm-footer-element a:hover {
+  color: #f6dcdc;
+}
+
+#rdm-footer-element a:hover {
+  color: #fff;
+}
+
+.unae-footer-main {
+  padding: 3.25rem 0 2.25rem;
+  border-top: 5px solid var(--u-brand);
+}
+
+.unae-footer-grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr 1.15fr;
+  gap: 2.5rem;
+}
+
+.unae-footer-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border-radius: 12px;
+  padding: 0.7rem 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.unae-footer-chip img {
+  display: block;
+  width: 190px;
+  max-width: 100%;
+  height: auto;
+}
+
+.unae-footer-site {
+  margin: 0 0 0.35rem;
+  font-family: var(--u-font-display);
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.25;
+}
+
+.unae-footer-desc {
+  margin: 0;
+  color: rgba(197, 216, 236, 0.8);
+  font-size: 0.86rem;
+  line-height: 1.6;
+  max-width: 32ch;
+}
+
+.unae-footer-col h4 {
+  margin: 0.2rem 0 0.9rem;
+  font-family: var(--u-font-body);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: #f0bcbd;
+}
+
+.unae-footer-col ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.unae-footer-col li {
+  margin: 0 0 0.55rem;
+  line-height: 1.4;
+}
+
+.unae-footer-col a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: rgba(214, 231, 246, 0.88);
+  font-size: 0.9rem;
+}
+
+.unae-footer-col a i {
+  font-size: 0.85rem;
+  color: #eba3a4;
+  margin: 0 !important;
+}
+
+.unae-footer-col p {
+  margin: 0 0 0.6rem;
+  color: rgba(197, 216, 236, 0.8);
+  font-size: 0.86rem;
+  line-height: 1.6;
+}
+
+.unae-footer-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 0.4rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid rgba(143, 196, 234, 0.35);
+  color: #f3c3c4;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.unae-footer-bottom {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 1.1rem 0;
+  background: rgba(0, 0, 0, 0.16);
+}
+
+.unae-footer-bottom-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.unae-footer-bottom p {
+  margin: 0;
+  font-size: 0.8rem;
+  color: rgba(180, 205, 229, 0.75);
+}
+
+.unae-footer-bottom .unae-footer-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+  font-size: 0.8rem;
+}
+
+.unae-footer-bottom .unae-footer-meta a,
+.unae-footer-bottom .unae-footer-meta strong {
+  color: rgba(214, 231, 246, 0.9);
+  font-weight: 600;
+}
+
+/* --------------------------------------------------------------------------
+   10. Página de acceso (cover)
+   -------------------------------------------------------------------------- */
+body.cover-page {
+  background:
+    radial-gradient(1000px 600px at 85% -10%, rgba(234, 36, 40, 0.35), transparent 60%),
+    linear-gradient(135deg, #3d0c0e 0%, #6b1215 55%, #8c1618 100%) !important;
+  min-height: 100vh !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 2rem 0;
+}
+
+body.cover-page > .sixteen.wide.column {
+  width: 100%;
+}
+
+body.cover-page .sixteen.wide.column > .ui.grid > .five.wide.computer.column,
+body.cover-page .sixteen.wide.column > .ui.grid > .column {
+  width: min(940px, 94vw) !important;
+}
+
+.unae-auth {
+  display: grid;
+  grid-template-columns: 1.05fr 1fr;
+  background: #fff;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 40px 90px rgba(3, 12, 28, 0.5);
+  text-align: left;
+  margin: 1rem 0 1.5rem;
+}
+
+.unae-auth-brand {
+  position: relative;
+  padding: 2.8rem 2.4rem;
+  background:
+    radial-gradient(600px 300px at 100% 0%, rgba(234, 36, 40, 0.45), transparent 65%),
+    linear-gradient(160deg, #2a1518 0%, #5c0f12 100%);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.unae-auth-brand .unae-auth-logo {
+  background: #fff;
+  border-radius: 12px;
+  padding: 0.7rem 0.9rem;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.unae-auth-brand .unae-auth-logo img {
+  display: block;
+  width: 210px;
+  max-width: 100%;
+  height: auto;
+}
+
+.unae-auth-brand h1 {
+  margin: 0.4rem 0 0;
+  font-family: var(--u-font-display);
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.unae-auth-brand p {
+  margin: 0;
+  color: rgba(215, 232, 250, 0.82);
+  font-size: 0.94rem;
+  line-height: 1.6;
+}
+
+.unae-auth-brand ul {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.unae-auth-brand ul li {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.88rem;
+  color: rgba(215, 232, 250, 0.9);
+}
+
+.unae-auth-brand ul i {
+  color: #ffb3b3;
+  margin: 0 !important;
+}
+
+.unae-auth-form {
+  padding: 2.8rem 2.6rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.unae-auth-form h2 {
+  margin: 0 0 0.35rem;
+  font-family: var(--u-font-display);
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--u-navy);
+}
+
+.unae-auth-form .unae-auth-lead {
+  margin: 0 0 1.5rem;
+  color: var(--u-muted);
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+
+.unae-auth-form .ui.form .field {
+  margin-bottom: 1rem;
+}
+
+.unae-auth-form .ui.input {
+  width: 100%;
+}
+
+.unae-auth-form .ui.input > input {
+  padding: 0.8rem 2.8rem 0.8rem 0.9rem !important;
+  font-size: 0.95rem;
+}
+
+.unae-auth-form .ui.primary.button {
+  margin-top: 0.4rem;
+  padding: 0.85rem 1rem !important;
+  font-size: 0.95rem !important;
+}
+
+.unae-auth-form .unae-auth-alt {
+  margin: 1.1rem 0 0;
+  font-size: 0.88rem;
+  color: var(--u-muted);
+}
+
+.unae-auth-form .unae-auth-alt a {
+  font-weight: 700;
+}
+
+.unae-auth-form .unae-auth-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 0.85rem;
+  font-size: 0.84rem;
+}
+
+.unae-auth-form .unae-auth-links a {
+  color: var(--u-muted);
+}
+
+.unae-auth-form .unae-auth-links a:hover {
+  color: var(--u-brand-700);
+}
+
+/* Selector de idioma del pie */
+.unae-lang-form {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+}
+
+.unae-lang-form label {
+  margin: 0;
+  font-size: 0.78rem;
+  color: rgba(180, 205, 229, 0.8);
+}
+
+.unae-lang-form select {
+  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #fdecec !important;
+  border-radius: 999px !important;
+  padding: 0.28rem 1.6rem 0.28rem 0.7rem !important;
+  font-family: var(--u-font-body) !important;
+  font-size: 0.78rem !important;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, #d99a9c 50%),
+                    linear-gradient(135deg, #d99a9c 50%, transparent 50%) !important;
+  background-position: calc(100% - 13px) 52%, calc(100% - 8px) 52% !important;
+  background-size: 5px 5px, 5px 5px !important;
+  background-repeat: no-repeat !important;
+}
+
+.unae-lang-form select option {
+  color: #2a1518;
+  background: #fff;
+}
+
+/* Encabezados de sección de la portada */
+#communities-carousel .ui.container > h2.ui.header,
+#records-list > h2.ui.header {
+  position: relative;
+  padding-left: 0.9rem;
+  line-height: 1.2;
+}
+
+#communities-carousel .ui.container > h2.ui.header::before,
+#records-list > h2.ui.header::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.15em;
+  bottom: 0.15em;
+  width: 4px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, var(--u-brand), var(--u-teal));
+}
+
+/* --------------------------------------------------------------------------
+   11. Utilidades
+   -------------------------------------------------------------------------- */
+.text-muted {
+  color: var(--u-muted) !important;
+}
+
+.unae-surface {
+  background: #fff;
+  border: 1px solid var(--u-line);
+  border-radius: var(--u-radius-lg);
+  box-shadow: var(--u-shadow-sm);
+  padding: 1.5rem;
+}
+
+/* --------------------------------------------------------------------------
+   12. Responsivo
+   -------------------------------------------------------------------------- */
+@media (max-width: 1024px) {
+  .unae-hero-grid {
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+  }
+
+  .unae-hero-card {
+    max-width: 540px;
+  }
+
+  .unae-footer-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+  }
+
+  .unae-footer-brand {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 768px) {
+  .unae-hero {
+    padding: 2.75rem 0 5rem;
+  }
+
+  .unae-hero-title {
+    font-size: clamp(2rem, 8vw, 2.6rem);
+  }
+
+  .unae-search {
+    flex-wrap: wrap;
+    padding: 0.6rem;
+    border-radius: 14px;
+  }
+
+  .unae-search > i.search.icon {
+    display: none;
+  }
+
+  .unae-search input[type="text"] {
+    flex: 1 1 100%;
+    padding: 0.65rem 0.6rem !important;
+  }
+
+  .unae-search-btn {
+    width: 100%;
+    justify-content: center;
+    padding: 0.8rem 1rem;
+  }
+
+  .unae-features {
+    padding-top: 3rem;
+  }
+
+  .unae-features-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .unae-feature-card {
+    padding: 1.5rem 1.4rem;
+  }
+
+  .unae-footer-grid {
+    grid-template-columns: 1fr;
+    gap: 1.75rem;
+  }
+
+  .unae-footer-main {
+    padding: 2.5rem 0 1.5rem;
+  }
+
+  .unae-footer-bottom-inner {
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .unae-auth {
+    grid-template-columns: 1fr;
+  }
+
+  .unae-auth-brand {
+    padding: 2rem 1.6rem;
+  }
+
+  .unae-auth-form {
+    padding: 2rem 1.6rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .unae-hero-links a {
+    font-size: 0.8rem;
+    padding: 0.4rem 0.7rem;
+  }
+
+  .unae-footer-chip img {
+    width: 160px;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   13. Administración — gestión de usuarios
+   -------------------------------------------------------------------------- */
+.unae-admin-users {
+  padding: 1.75rem 1.5rem 3rem;
+}
+
+.unae-admin-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
+
+.unae-admin-title {
+  margin: 0 0 0.25rem;
+  font-family: var(--u-font-display);
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--u-navy);
+  letter-spacing: -0.01em;
+}
+
+.unae-admin-subtitle {
+  margin: 0;
+  max-width: 46rem;
+  color: var(--u-muted);
+  font-size: 0.92rem;
+}
+
+.unae-admin-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.15rem;
+  border-radius: 999px;
+  background: var(--u-brand);
+  color: #fff !important;
+  font-family: var(--u-font-body);
+  font-weight: 600;
+  font-size: 0.9rem;
+  box-shadow: 0 8px 20px rgba(234, 36, 40, 0.28);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.unae-admin-cta:hover {
+  background: var(--u-brand-600);
+  color: #fff !important;
+  transform: translateY(-1px);
+  box-shadow: 0 12px 26px rgba(234, 36, 40, 0.34);
+}
+
+.unae-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.unae-kpi {
+  background: #fff;
+  border: 1px solid var(--u-line);
+  border-radius: var(--u-radius-lg);
+  padding: 1.1rem 1.2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  box-shadow: var(--u-shadow-xs);
+}
+
+.unae-kpi-icon {
+  width: 2.6rem;
+  height: 2.6rem;
+  flex: 0 0 2.6rem;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--u-brand-soft);
+  color: var(--u-brand-700);
+  font-size: 1.15rem;
+}
+
+.unae-kpi strong {
+  display: block;
+  font-family: var(--u-font-display);
+  font-size: 1.5rem;
+  line-height: 1.1;
+  color: var(--u-navy);
+}
+
+.unae-kpi span {
+  font-size: 0.78rem;
+  color: var(--u-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.unae-admin-panels {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.unae-panel,
+.unae-admin-table {
+  background: #fff;
+  border: 1px solid var(--u-line);
+  border-radius: var(--u-radius-lg);
+  box-shadow: var(--u-shadow-xs);
+  overflow: hidden;
+}
+
+.unae-panel-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.2rem;
+  border-bottom: 1px solid var(--u-line);
+}
+
+.unae-panel-head h2 {
+  margin: 0;
+  font-family: var(--u-font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--u-navy);
+}
+
+.unae-panel-head span {
+  font-size: 0.76rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--u-muted);
+}
+
+.unae-people {
+  list-style: none;
+  margin: 0;
+  padding: 0.35rem 0;
+}
+
+.unae-person {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.65rem 1.2rem;
+}
+
+.unae-person + .unae-person {
+  border-top: 1px solid var(--u-line);
+}
+
+.unae-avatar {
+  width: 2.3rem;
+  height: 2.3rem;
+  flex: 0 0 2.3rem;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: hsl(var(--h, 355) 58% 44%);
+  color: #fff;
+  font-family: var(--u-font-display);
+  font-weight: 700;
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
+}
+
+.unae-person-info {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.unae-person-info strong {
+  display: block;
+  font-size: 0.88rem;
+  color: var(--u-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.unae-person-info span {
+  display: block;
+  font-size: 0.76rem;
+  color: var(--u-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.unae-person-meta {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.15rem;
+}
+
+.unae-person-meta small {
+  font-size: 0.72rem;
+  color: var(--u-muted);
+}
+
+.unae-pill {
+  display: inline-block;
+  padding: 0.18rem 0.55rem;
+  border-radius: 999px;
+  background: var(--u-brand-soft);
+  color: var(--u-brand-700);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.unae-empty {
+  margin: 0;
+  padding: 2rem 1.2rem;
+  text-align: center;
+  color: var(--u-muted);
+  font-size: 0.87rem;
+}
+
+.unae-empty i {
+  display: block;
+  font-size: 1.6rem;
+  margin-bottom: 0.5rem;
+  opacity: 0.55;
+}
+
+.unae-latest {
+  border-top: 1px solid var(--u-line);
+  padding: 0.9rem 1.2rem 1.1rem;
+}
+
+.unae-latest h3 {
+  margin: 0 0 0.5rem;
+  font-family: var(--u-font-body);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--u-muted);
+}
+
+.unae-latest ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.unae-latest li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.22rem 0;
+  font-size: 0.8rem;
+}
+
+.unae-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--u-brand);
+  flex: 0 0 6px;
+}
+
+.unae-latest-mail {
+  color: var(--u-text);
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.unae-latest-date {
+  color: var(--u-muted);
+  font-size: 0.74rem;
+}
+
+/* Tabla de la administración */
+.unae-admin-table .ui.table {
+  border: 0;
+  margin: 0 !important;
+  box-shadow: none !important;
+}
+
+.unae-admin-table .ui.table thead th {
+  background: var(--u-surface-2);
+  color: var(--u-muted);
+  font-family: var(--u-font-body);
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: 1px solid var(--u-line);
+}
+
+.unae-admin-table .ui.table tbody tr:hover {
+  background: #fffafa !important;
+}
+
+.unae-admin-table .ui.table td {
+  border-top: 1px solid var(--u-line);
+  padding-top: 0.85rem;
+  padding-bottom: 0.85rem;
+  color: var(--u-text);
+}
+
+.unae-admin-table .ui.label,
+.unae-admin-table .ui.basic.label {
+  border-radius: 999px;
+}
+
+.unae-admin-table .search-bar,
+.unae-admin-table .ui.input {
+  border-radius: 10px;
+}
+
+@media (max-width: 1100px) {
+  .unae-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .unae-admin-panels {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .unae-admin-users {
+    padding: 1.25rem 0.9rem 2.5rem;
+  }
+
+  .unae-kpis {
+    grid-template-columns: 1fr;
+  }
+
+  .unae-admin-title {
+    font-size: 1.3rem;
+  }
+
+  .unae-person-meta {
+    display: none;
+  }
+}
+
+/* Cabecera del panel de administración (Semantic la pinta azul por defecto) */
+.invenio-administration header.ui.grid > .column.inverted {
+  background: var(--u-navy) !important;
+}
+
+.unae-admin-table #invenio-search-config {
+  overflow-x: auto;
+}
+
+.unae-admin-table .ui.table {
+  min-width: 860px;
+}
+
+#invenio-admin-home-nav,
+#invenio-admin-top-nav {
+  background: var(--u-navy) !important;
+}
+
+.unae-admin-table {
+  overflow-x: auto;
+}

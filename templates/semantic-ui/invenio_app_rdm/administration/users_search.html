@@ -1,7 +1,9 @@
 {#
-   Repositorio UNAE Análisis — lista de usuarios con botón "Crear usuario".
-   Replica el bloque del template base y añade el botón (la vista base trae
-   display_create=False para usuarios). Sin cambios de funcionalidad.
+   Repositorio HGI — gestión de usuarios.
+
+   Añade un panel de estadísticas (altas, accesos y depósitos) sobre la tabla
+   de administración de usuarios de InvenioRDM. La tabla inferior conserva el
+   buscador, los filtros y las acciones originales (bloquear, aprobar, etc.).
 #}
 
 {% extends "invenio_administration/search.html" %}
@@ -10,24 +12,137 @@
   <main id="admin-main-content"
         class="ten wide mobile twelve wide tablet thirteen wide computer fourteen wide widescreen column">
 
-    <div class="ui container fluid pl-10 pr-10 pt-10 pb-10">
-    <div class="ui grid">
-      <div class="column twelve wide">
-        <h1 class="ui header">{{ title or name }}</h1>
-      </div>
-      <div class="column four wide">
-        <div class="ui grid fluid">
-          <div class="three wide column right floated">
-            <a class="ui right floated icon left labeled button green"
-               href="/administration/users/create">
-              <i aria-hidden="true" class="plus icon"></i>Crear usuario
-            </a>
-          </div>
+    <div class="ui container fluid unae-admin-users">
+
+      <header class="unae-admin-head">
+        <div>
+          <h1 class="unae-admin-title">{{ _("Gestión de usuarios") }}</h1>
+          <p class="unae-admin-subtitle">
+            {{ _("Personas con cuenta en el repositorio: altas, accesos y depósitos publicados.") }}
+          </p>
         </div>
+        <a class="unae-admin-cta" href="/administration/users/create">
+          <i aria-hidden="true" class="plus icon"></i>{{ _("Crear usuario") }}
+        </a>
+      </header>
+
+      {% if unae_insights %}
+      <section class="unae-kpis" aria-label="{{ _('Resumen de usuarios') }}">
+        <article class="unae-kpi">
+          <span class="unae-kpi-icon"><i aria-hidden="true" class="users icon"></i></span>
+          <div>
+            <strong>{{ unae_insights.total_users }}</strong>
+            <span>{{ _("Usuarios registrados") }}</span>
+          </div>
+        </article>
+        <article class="unae-kpi">
+          <span class="unae-kpi-icon"><i aria-hidden="true" class="check circle icon"></i></span>
+          <div>
+            <strong>{{ unae_insights.active_users }}</strong>
+            <span>{{ _("Cuentas activas") }}</span>
+          </div>
+        </article>
+        <article class="unae-kpi">
+          <span class="unae-kpi-icon"><i aria-hidden="true" class="shield alternate icon"></i></span>
+          <div>
+            <strong>{{ unae_insights.admins }}</strong>
+            <span>{{ _("Administradores") }}</span>
+          </div>
+        </article>
+        <article class="unae-kpi">
+          <span class="unae-kpi-icon"><i aria-hidden="true" class="cloud upload alternate icon"></i></span>
+          <div>
+            <strong>{{ unae_insights.total_deposits }}</strong>
+            <span>{{ _("Depósitos publicados") }}</span>
+          </div>
+        </article>
+      </section>
+
+      <div class="unae-admin-panels">
+        <section class="unae-panel">
+          <header class="unae-panel-head">
+            <h2>{{ _("Colaboradores destacados") }}</h2>
+            <span>{{ unae_insights.with_deposits }} {{ _("con depósitos") }}</span>
+          </header>
+          {% if unae_insights.contributors %}
+          <ul class="unae-people">
+            {% for person in unae_insights.contributors %}
+            <li class="unae-person">
+              <span class="unae-avatar" style="--h: {{ person.hue }}">{{ person.initials }}</span>
+              <div class="unae-person-info">
+                <strong>{{ person.name }}</strong>
+                <span>{{ person.email }}</span>
+              </div>
+              <div class="unae-person-meta">
+                <span class="unae-pill">{{ person.deposits }} {{ _("depósitos") }}</span>
+                {% if person.last_deposit_at %}
+                <small>{{ _("Último") }}: {{ person.last_deposit_at.strftime("%d/%m/%Y") }}</small>
+                {% endif %}
+              </div>
+            </li>
+            {% endfor %}
+          </ul>
+          {% else %}
+          <p class="unae-empty">
+            <i aria-hidden="true" class="inbox icon"></i>
+            {{ _("Todavía no hay depósitos publicados. Cuando las personas empiecen a cargar trabajos, aparecerán aquí.") }}
+          </p>
+          {% endif %}
+        </section>
+
+        <section class="unae-panel">
+          <header class="unae-panel-head">
+            <h2>{{ _("Actividad reciente") }}</h2>
+            <span>{{ _("Últimos accesos") }}</span>
+          </header>
+          {% if unae_insights.recent_logins %}
+          <ul class="unae-people unae-people-compact">
+            {% for person in unae_insights.recent_logins %}
+            <li class="unae-person">
+              <span class="unae-avatar" style="--h: {{ person.hue }}">{{ person.initials }}</span>
+              <div class="unae-person-info">
+                <strong>{{ person.name }}</strong>
+                <span>{{ person.email }}</span>
+              </div>
+              <div class="unae-person-meta">
+                <small>{{ person.last_login_at.strftime("%d/%m/%Y %H:%M") }}</small>
+                <small>{{ person.login_count }} {{ _("accesos") }}</small>
+              </div>
+            </li>
+            {% endfor %}
+          </ul>
+          {% else %}
+          <p class="unae-empty">
+            <i aria-hidden="true" class="clock outline icon"></i>
+            {{ _("Sin accesos registrados por ahora.") }}
+          </p>
+          {% endif %}
+
+          {% if unae_insights.recent_users %}
+          <div class="unae-latest">
+            <h3>{{ _("Altas recientes") }}</h3>
+            <ul>
+              {% for person in unae_insights.recent_users %}
+              <li>
+                <span class="unae-dot"></span>
+                <span class="unae-latest-mail">{{ person.email }}</span>
+                <span class="unae-latest-date">{{ person.created.strftime("%d/%m/%Y") }}</span>
+              </li>
+              {% endfor %}
+            </ul>
+          </div>
+          {% endif %}
+        </section>
       </div>
-    </div>
-      {% block admin_page_content %}
-        <div class="ui divider" aria-hidden="true"></div>
+      {% endif %}
+
+      <section class="unae-admin-table">
+        <header class="unae-panel-head">
+          <h2>{{ _("Todos los usuarios") }}</h2>
+          {% if unae_insights %}
+          <span>{{ unae_insights.confirmed_users }} {{ _("confirmados") }}</span>
+          {% endif %}
+        </header>
 
         {%- block search_app %}
           <div
@@ -49,9 +164,7 @@
           >
           </div>
         {%- endblock search_app %}
-      {% endblock admin_page_content %}
-
-
+      </section>
     </div>
   </main>
 {% endblock %}

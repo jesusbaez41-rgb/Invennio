@@ -1,62 +1,104 @@
 {# -*- coding: utf-8 -*-
-   Repositorio UNAE Análisis — cabecera de portada.
-   Solo cambia presentación; el formulario conserva action y parámetros (funcionalidad intacta).
+
+  Repositorio UNAE Análisis — portada (hero).
+
+  Hereda la cabecera institucional y sustituye el bloque de búsqueda de la
+  portada por el hero. El formulario conserva el action y el parámetro `q`
+  del buscador de InvenioRDM.
 #}
 
 {%- extends config.THEME_HEADER_TEMPLATE %}
 
-{#- Remove search field from top bar on frontpage #}
+{#- El buscador de la barra superior se reemplaza por el del hero #}
 {%- block navbar_search %}{% endblock %}
 
 {%- block navbar %}
 {{ super() }}
 
 {%- block frontpage_search %}
-<div id="frontpage-search-bar" class="ui container fluid frontpage-header">
-<div class="ui container grid">
-  {%- block frontpage_title %}
-  <div class="row">
-    <div class="sixteen wide mobile four wide computer column"></div>
-    <div class="sixteen wide mobile eight wide computer column centered center aligned">
-      <span class="frontpage-badge">Acceso institucional</span>
-      {%- if config.THEME_FRONTPAGE_TITLE or config.THEME_FRONTPAGE_SUBTITLE %}
-      <h1 class="ui center aligned header inverted">
-        {%- if config.THEME_FRONTPAGE_TITLE %}
-        {{ _(config.THEME_FRONTPAGE_TITLE) }}
-        {%- endif %}
-        {%- if config.THEME_FRONTPAGE_SUBTITLE %}
-        <div class="sub header">{{ _(config.THEME_FRONTPAGE_SUBTITLE) }}</div>
-        {%- endif %}
-      </h1>
-      {%- endif %}
-    </div>
-    <div class="sixteen wide mobile four wide computer column"></div>
-  </div>
-  {%- endblock frontpage_title %}
-  {%- block frontpage_form %}
-  <div class="row">
-    <div class="sixteen wide mobile four wide computer column"></div>
-    <div class="sixteen wide mobile eight wide computer column center aligned">
-      <form action="{{ url_for('invenio_search_ui.search') }}" class="ui form" role="search">
-        <div class="ui fluid big action input">
-          <input type="text" name="q" class="form-control" aria-label="{{ _('Search') }}" placeholder="Buscar por título, autor, palabra clave…">
-          <button type="submit" class="ui icon search button" aria-label="{{ _('Search') }}">
-            <i class="search icon"></i>
+<section id="frontpage-search-bar" class="unae-hero frontpage-header" aria-labelledby="unae-hero-title">
+  <div class="ui container">
+    <div class="unae-hero-grid">
+
+      <div class="unae-hero-copy">
+        <span class="unae-eyebrow">
+          <i class="unlock alternate icon" aria-hidden="true"></i>
+          {{ _("Acceso abierto al conocimiento") }}
+        </span>
+
+        <h1 id="unae-hero-title" class="unae-hero-title">
+          {{ _(config.THEME_FRONTPAGE_TITLE) }}
+          {%- if config.THEME_FRONTPAGE_SUBTITLE %}
+          <span>{{ _(config.THEME_FRONTPAGE_SUBTITLE) }}</span>
+          {%- endif %}
+        </h1>
+
+        <form action="{{ url_for('invenio_search_ui.search') }}"
+              class="unae-search"
+              role="search"
+              method="GET">
+          <i class="search icon" aria-hidden="true"></i>
+          <input type="text"
+                 name="q"
+                 autocomplete="off"
+                 aria-label="{{ _('Buscar en el repositorio') }}"
+                 placeholder="{{ _('Busca tesis, artículos, datos de investigación…') }}">
+          <button type="submit" class="unae-search-btn">
+            <i class="search icon" aria-hidden="true"></i>
+            <span>{{ _("Buscar") }}</span>
           </button>
-        </div>
-      </form>
-      <div class="frontpage-quicklinks" style="margin-top: 1.2rem;">
-        <a href="{{ url_for('invenio_search_ui.search') }}">Búsqueda avanzada</a>
-        <a href="/communities">Comunidades</a>
-        <a href="/login">Acceso institucional</a>
+        </form>
+
+        <nav class="unae-hero-links" aria-label="{{ _('Accesos rápidos') }}">
+          <a href="{{ url_for('invenio_search_ui.search') }}">
+            <i class="compass outline icon" aria-hidden="true"></i>{{ _("Explorar todo") }}
+          </a>
+          <a href="/communities">
+            <i class="users icon" aria-hidden="true"></i>{{ _("Comunidades") }}
+          </a>
+          <a href="/uploads/new">
+            <i class="cloud upload alternate icon" aria-hidden="true"></i>{{ _("Depositar un trabajo") }}
+          </a>
+        </nav>
       </div>
+
+      <aside class="unae-hero-card" aria-label="{{ _('Sello institucional') }}">
+        <figure class="unae-hero-photo">
+          <img src="{{ url_for('static', filename='images/hgi-hospital-2.jpg') }}"
+               alt="{{ _('Hospital General de Itapúa Ladislao Hrisuk') }}">
+          <figcaption>{{ _("Hospital General de Itapúa · Encarnación") }}</figcaption>
+        </figure>
+
+        <p class="unae-hero-card-title">{{ _("Repositorio institucional de ciencia abierta") }}</p>
+
+        <ul class="unae-pillars">
+          <li>
+            <i class="unlock alternate icon" aria-hidden="true"></i>
+            <div>
+              <strong>{{ _("Acceso abierto") }}</strong>
+              <span>{{ _("Consulta y descarga sin barreras") }}</span>
+            </div>
+          </li>
+          <li>
+            <i class="certificate icon" aria-hidden="true"></i>
+            <div>
+              <strong>{{ _("Identificadores persistentes") }}</strong>
+              <span>{{ _("DOI, recid y OAI-PMH") }}</span>
+            </div>
+          </li>
+          <li>
+            <i class="archive icon" aria-hidden="true"></i>
+            <div>
+              <strong>{{ _("Preservación digital") }}</strong>
+              <span>{{ _("Versionado y metadatos estandarizados") }}</span>
+            </div>
+          </li>
+        </ul>
+      </aside>
+
     </div>
-    <div class="sixteen wide mobile four wide computer column"></div>
   </div>
-  <div class="ui divider hidden"></div>
-  {%- endblock frontpage_form %}
-</div>
-</div>
+</section>
 {%- endblock frontpage_search %}
 
 {% endblock navbar %}

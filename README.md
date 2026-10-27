@@ -11,6 +11,32 @@ InvenioRDM is the open source turn-key research data management platform, with d
 
 InvenioRDM Starter is open source software and is coordinated by the InvenioRDM partner [Front Matter](https://front-matter.de). For questions please reach out to the and the [Inveniosoftware Discord](hhttps://discord.gg/AcryHZQcmv).
 
+## Instalación desde cero (Repositorio HGI)
+
+Con Docker instalado, clonar el repositorio y ejecutar el script según el entorno:
+
+```bash
+git clone <url-del-repositorio> && cd invennio
+./setup.sh local     # desarrollo: https://localhost (Caddy, certificado autofirmado)
+./setup.sh prod      # producción: Apache delante, app en 127.0.0.1:5000
+./setup.sh verify    # comprobar que el entorno está sano
+```
+
+El script es idempotente: crea el archivo de entorno si falta, levanta los
+contenedores, inicializa base de datos, índices, roles y almacenamiento (solo
+la primera vez), crea el administrador y verifica que el sitio responda.
+
+Variables opcionales:
+
+```bash
+ADMIN_EMAIL=admin@midominio.py ADMIN_PASSWORD='ClaveSegura123' ./setup.sh local
+SEED_DEMO=1 ./setup.sh local   # carga registros/comunidades de ejemplo
+```
+
+Credenciales y secretos quedan en `.env` (local) o `.env.prod` (producción).
+En producción, Apache debe proxyear a `127.0.0.1:5000`; hay configuraciones
+listas en `apache/`.
+
 ## Requirements
 
 * Docker Desktop ([Windows](https://docs.docker.com/desktop/install/windows-install/), [macOS](https://docs.docker.com/desktop/install/mac-install/), [Linux](https://docs.docker.com/desktop/install/linux-install/)) or Docker Engine ([Linux](https://docs.docker.com/engine/install/))
@@ -48,6 +74,16 @@ Open a web browser and navigate to [https://localhost](https://localhost). One d
 The `compose.yml` configuration can be modified to suit your needs using environment variables in an `.env` file in the same folder. See [.env.example](.env.example) for an example.
 
 The `compose.yml` file is well documented, and the documentation is also available online at [https://starter.front-matter.de/](https://starter.front-matter.de/) generated using the Envy documentation tool.
+
+## Cumplimiento del Estándar de Software (MITIC)
+
+Este proyecto documenta su cumplimiento frente al *Estándar de Software — Desarrollo y adquisición* del MITIC (Paraguay, v1.0/2020), modalidad **Desarrollo de software con requerimientos definidos**, en el paquete [docs/estandar-mitic/](docs/estandar-mitic/README.md), que incluye:
+
+* la **matriz de revisión de cumplimiento** ítem por ítem del estándar con estado y evidencia,
+* las matrices de **requerimientos funcionales** (Anexo I) y **no funcionales**,
+* la matriz de **trazabilidad y pruebas** (informe de control de calidad),
+* el **inventario de software** exigido por el Título II, Capítulo 1, y
+* la **especificación técnica** completa (arquitectura, tecnología, seguridad, plan de trabajo, entregables, soporte, garantía y propiedad intelectual).
 
 ## Architecture
 
