@@ -12,7 +12,7 @@
 # Variables opcionales:
 #   ADMIN_EMAIL=...      correo del administrador inicial
 #   ADMIN_PASSWORD=...   contraseña del administrador inicial
-#   SEED_DEMO=1          carga registros/comunidades de ejemplo
+#   SEED_DEMO=1          además carga registros/comunidades de ejemplo
 # =============================================================================
 set -Eeuo pipefail
 
@@ -205,13 +205,54 @@ init_invenio() {
   run_soft invenio rdm-records custom-fields init
   run_soft invenio communities custom-fields init
 
+  # Vocabularios obligatorios. Sin ellos, páginas como los ajustes de una
+  # comunidad o el formulario de depósito fallan con error 500/404 porque
+  # invenio-vocabularies espera que existan los tipos (communitytypes,
+  # resourcetypes, languages, licenses, ...). El comando es idempotente y no
+  # crea registros de ejemplo (records.yaml/communities.yaml están vacíos).
+  run_soft invenio rdm-records fixtures
+
   if [ "${SEED_DEMO:-0}" = "1" ]; then
-    run_soft invenio rdm-records fixtures
+    run_soft invenio rdm-records demo communities
+    run_soft invenio rdm-records demo records
   fi
 
   run_soft invenio rdm rebuild-all-indices
   run_soft invenio queues declare
   ok "InvenioRDM inicializado"
+}
+
+# Comprueba que los tipos de vocabulario esenciales existan en la base de datos.
+db_has_vocabularies() {
+  local user db out
+  user="$(env_get POSTGRES_USER "$ENV_FILE")"; user="${user:-postgres}"
+  db="$(env_get POSTGRES_DB "$ENV_FILE")"; db="${db:-inveniordm}"
+  out="$(compose exec -T db psql -U "$user" -d "$db" -tAc \
+        "select count(distinct id) from vocabularies_types
+         where id in ('creatorsroles','contributorsroles','licenses','languages',
+                      'relationtypes','resourcetypes','communitytypes')" \
+        2>/dev/null | tr -d '[:space:]')"
+  [ "${out:-0}" = "7" ]
+}
+
+# Repara instalaciones existentes a las que nunca se les cargaron los
+# vocabularios (p. ej. porque setup.sh se ejecutó sin SEED_DEMO). Es
+# idempotente y no toca registros ni usuarios.
+ensure_vocabularies() {
+  if db_has_vocabularies; then
+    ok "Vocabularios de InvenioRDM presentes"
+    return 0
+  fi
+
+  info "Cargando vocabularios requeridos (communitytypes, resourcetypes, languages…)"
+  CT web invenio rdm-records fixtures
+
+  if db_has_vocabularies; then
+    ok "Vocabularios cargados"
+  else
+    warn "No se pudieron verificar los vocabularios; revisá: docker compose logs web"
+    return 1
+  fi
 }
 
 # ---------------------------------------------------------------------------
@@ -314,6 +355,10 @@ if db_initialized; then
 else
   init_invenio
 fi
+
+# También en instalaciones ya existentes: los vocabularios son imprescindibles
+# para los ajustes de comunidad, el depósito de registros, etc.
+ensure_vocabularies
 
 create_admin
 

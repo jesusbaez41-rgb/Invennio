@@ -30,7 +30,19 @@ Variables opcionales:
 
 ```bash
 ADMIN_EMAIL=admin@midominio.py ADMIN_PASSWORD='ClaveSegura123' ./setup.sh local
-SEED_DEMO=1 ./setup.sh local   # carga registros/comunidades de ejemplo
+SEED_DEMO=1 ./setup.sh local   # además carga registros/comunidades de ejemplo
+```
+
+Los vocabularios de InvenioRDM (`communitytypes`, `resourcetypes`, `languages`,
+`licenses`, etc.) se cargan siempre, también al volver a ejecutar el script sobre
+una instalación existente. Sin ellos, los ajustes de una comunidad y el
+formulario de depósito responden 500/404.
+
+Si actualizás una instalación que ya tenía la base de datos creada, volvé a
+ejecutar el script para repararla:
+
+```bash
+./setup.sh prod
 ```
 
 Credenciales y secretos quedan en `.env` (local) o `.env.prod` (producción).

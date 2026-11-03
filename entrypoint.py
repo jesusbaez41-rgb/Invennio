@@ -103,6 +103,32 @@ def check_custom_field_exists():
     return "exists" in result.stdout.lower() if result.stdout else False
 
 
+def check_vocabularies_exist():
+    """Check that the essential vocabulary types were loaded.
+
+    Without them, pages that read vocabularies (community settings, deposit
+    form, ...) fail with 500/404 because invenio-vocabularies raises when the
+    vocabulary type row is missing.
+    """
+    code = (
+        "from invenio_app.factory import create_app\n"
+        "app = create_app()\n"
+        "with app.app_context():\n"
+        "    from invenio_vocabularies.records.models import VocabularyType\n"
+        "    ids = {t.id for t in VocabularyType.query.all()}\n"
+        "    required = {'communitytypes', 'resourcetypes', 'languages',\n"
+        "                'licenses', 'creatorsroles', 'contributorsroles',\n"
+        "                'relationtypes'}\n"
+        "    print('exists' if required <= ids else 'missing')\n"
+    )
+    result = run_command(
+        ["python", "-c", code],
+        check=False,
+        capture_output=True,
+    )
+    return "exists" in result.stdout.lower() if result.stdout else False
+
+
 def main():
     """Main initialization logic."""
 
@@ -191,8 +217,8 @@ def main():
 
         print("Database and search setup completed.")
 
-        # Check if custom fields need to be initialized
-        if not check_custom_field_exists():
+        # Check if custom fields or vocabularies need to be initialized
+        if not check_custom_field_exists() or not check_vocabularies_exist():
             print("Creating custom fields for records...")
             run_command(["invenio", "rdm-records", "custom-fields", "init"])
 
