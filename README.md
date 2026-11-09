@@ -26,6 +26,10 @@ El script es idempotente: crea el archivo de entorno si falta, levanta los
 contenedores, inicializa base de datos, índices, roles y almacenamiento (solo
 la primera vez), crea el administrador y verifica que el sitio responda.
 
+En Linux, OpenSearch necesita `vm.max_map_count >= 262144`. El script lo ajusta
+automáticamente (con `sudo`) y aborta con instrucciones si no puede hacerlo. Si
+el contenedor `search` no arranca, revisá `docker compose logs search`.
+
 Variables opcionales:
 
 ```bash

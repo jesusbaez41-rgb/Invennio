@@ -62,6 +62,34 @@ check_docker() {
   ok "Docker y Docker Compose disponibles"
 }
 
+# OpenSearch aborta si el kernel no permite mapear 262144 áreas de memoria.
+# En Ubuntu el valor por defecto (65530) es demasiado bajo y el contenedor
+# search se detiene, dejando el índice y los custom fields sin crear.
+ensure_host_setup() {
+  [ "$(uname -s)" = "Linux" ] || return 0
+  command -v sysctl >/dev/null 2>&1 || return 0
+
+  local want=262144 have
+  have="$(sysctl -n vm.max_map_count 2>/dev/null || echo 0)"
+  if [ "${have:-0}" -ge "$want" ] 2>/dev/null; then
+    ok "vm.max_map_count=$have (OpenSearch)"
+    return 0
+  fi
+
+  info "Ajustando vm.max_map_count para OpenSearch (actual: ${have:-?}, mínimo: $want)…"
+  if command -v sudo >/dev/null 2>&1 \
+     && sudo sysctl -w vm.max_map_count="$want" >/dev/null 2>&1; then
+    ok "vm.max_map_count=$want"
+    printf 'vm.max_map_count=%s\n' "$want" \
+      | sudo tee /etc/sysctl.d/99-opensearch.conf >/dev/null 2>&1 || true
+  else
+    die "OpenSearch necesita vm.max_map_count >= $want. Ejecutá:
+      sudo sysctl -w vm.max_map_count=$want
+      echo 'vm.max_map_count=$want' | sudo tee /etc/sysctl.d/99-opensearch.conf
+    y volvé a ejecutar ./setup.sh $MODE"
+  fi
+}
+
 ENV_FILE=".env"
 COMPOSE_ARGS=(--env-file .env)
 if [ "$MODE" = "prod" ]; then
@@ -155,6 +183,43 @@ wait_db() {
   die "PostgreSQL no respondió a tiempo. Revisá: docker compose logs db"
 }
 
+# Sin OpenSearch la web arranca igual, pero fallan "invenio index init" y
+# "invenio rdm-records custom-fields init". Por eso se espera y, si el
+# contenedor murió, se aborta con la causa en vez de seguir a ciegas.
+wait_search() {
+  info "Esperando a OpenSearch…"
+  local i state cid
+  for i in $(seq 1 90); do
+    if compose exec -T search \
+         sh -c "curl -fsS 'http://127.0.0.1:9200/_cluster/health'" \
+         >/dev/null 2>&1; then
+      ok "OpenSearch listo"
+      return 0
+    fi
+
+    cid="$(compose ps -q search 2>/dev/null || true)"
+    state=""
+    if [ -n "$cid" ]; then
+      state="$(docker inspect -f '{{.State.Status}}' "$cid" 2>/dev/null || true)"
+    fi
+    if [ "$state" = "exited" ] || [ "$state" = "dead" ] || [ "$state" = "restarting" ]; then
+      local code
+      code="$(docker inspect -f '{{.State.ExitCode}}' "$cid" 2>/dev/null || true)"
+      warn "El contenedor search se detuvo (código ${code:-?}). Últimos logs:"
+      compose logs --tail=40 search || true
+      if [ "$code" = "137" ]; then
+        die "OpenSearch se quedó sin memoria (OOM). Bajá OPENSEARCH_JAVA_OPTS (p. ej. -Xms512m -Xmx512m) y volvé a ejecutar ./setup.sh $MODE"
+      fi
+      die "OpenSearch no arrancó. Causa habitual: vm.max_map_count bajo o falta de memlock. Revisá: docker compose logs search"
+    fi
+    sleep 2
+  done
+
+  warn "OpenSearch no respondió a tiempo. Últimos logs:"
+  compose logs --tail=40 search || true
+  die "OpenSearch no respondió a tiempo. Revisá: docker compose logs search"
+}
+
 wait_web() {
   info "Esperando a la aplicación web…"
   local i
@@ -201,9 +266,9 @@ init_invenio() {
   run_soft invenio roles create administration-moderation
   run_soft invenio access allow administration-moderation role administration-moderation
 
-  run_soft invenio index init
-  run_soft invenio rdm-records custom-fields init
-  run_soft invenio communities custom-fields init
+  # Los índices viven en OpenSearch. Se crean solo si aún no existen, porque
+  # "invenio index init" falla cuando los índices ya están creados.
+  ensure_search_indexes
 
   # Vocabularios obligatorios. Sin ellos, páginas como los ajustes de una
   # comunidad o el formulario de depósito fallan con error 500/404 porque
@@ -220,6 +285,35 @@ init_invenio() {
   run_soft invenio rdm rebuild-all-indices
   run_soft invenio queues declare
   ok "InvenioRDM inicializado"
+}
+
+# ¿Ya hay índices de Invenio en OpenSearch? Sirve para no repetir
+# "invenio index init", que aborta con IndexAlreadyExistsError.
+search_has_indexes() {
+  local prefix
+  prefix="$(env_get INVENIO_SEARCH_INDEX_PREFIX "$ENV_FILE")"
+  prefix="${prefix:-invenio-rdm-}"
+  compose exec -T search sh -c \
+    "curl -fsS 'http://127.0.0.1:9200/_cat/indices/${prefix}*?h=index'" \
+    2>/dev/null | grep -q .
+}
+
+# Repara instalaciones con la base de datos ya creada pero sin índices, por
+# ejemplo si OpenSearch no estaba listo durante la primera ejecución. Es
+# idempotente: no borra ni recrea índices existentes.
+ensure_search_indexes() {
+  info "Verificando índices y campos personalizados en OpenSearch…"
+  if search_has_indexes; then
+    ok "Índices de búsqueda ya presentes"
+  else
+    CT web invenio index init \
+      || die "No se pudieron crear los índices en OpenSearch. Revisá: docker compose logs search"
+  fi
+  CT web invenio rdm-records custom-fields init \
+    || die "No se pudieron crear los campos personalizados (requiere OpenSearch)."
+  # Puede terminar en 0 aunque no haya campos configurados.
+  CT web invenio communities custom-fields init >/dev/null 2>&1 || true
+  ok "Índices y campos personalizados listos"
 }
 
 # Comprueba que los tipos de vocabulario esenciales existan en la base de datos.
@@ -294,8 +388,18 @@ public_url() {
 }
 
 verify() {
-  local url code direct_ok=1
+  local url code direct_ok=1 search_ok=1
   url="$(public_url)"
+
+  info "Comprobando OpenSearch…"
+  if compose exec -T search \
+       sh -c "curl -fsS 'http://127.0.0.1:9200/_cluster/health'" \
+       >/dev/null 2>&1; then
+    ok "OpenSearch responde"
+  else
+    warn "OpenSearch no responde (la búsqueda y la creación de índices fallarán)"
+    search_ok=0
+  fi
 
   if [ "$MODE" = "prod" ]; then
     info "Comprobando la app directo en 127.0.0.1:5000…"
@@ -322,14 +426,19 @@ verify() {
   compose ps --format 'table {{.Name}}\t{{.Status}}'
 
   if [ "$MODE" = "prod" ]; then
-    [ "$direct_ok" = "1" ] && return 0
+    if [ "$direct_ok" = "1" ] && [ "$search_ok" = "1" ]; then
+      return 0
+    fi
   else
-    [ "$code" = "200" ] && return 0
+    if [ "$code" = "200" ] && [ "$search_ok" = "1" ]; then
+      return 0
+    fi
   fi
 
   echo
   warn "Últimos errores del contenedor web:"
   compose logs --tail=30 web || true
+  [ "$search_ok" = "1" ] || { echo; warn "Últimos errores de OpenSearch:"; compose logs --tail=30 search || true; }
   return 1
 }
 
@@ -346,12 +455,16 @@ fi
 
 prepare_env
 fill_env_defaults
+ensure_host_setup
 up
 wait_db
+wait_search
 wait_web
 
 if db_initialized; then
   ok "La base de datos ya estaba inicializada (se omite la instalación inicial)"
+  # Puede faltar la creación de índices si OpenSearch no estaba listo antes.
+  ensure_search_indexes
 else
   init_invenio
 fi
