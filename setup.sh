@@ -90,6 +90,24 @@ ensure_host_setup() {
   fi
 }
 
+# Las imágenes oficiales de OpenSearch >= 2.10 (Amazon Linux 2023) exigen
+# x86-64-v2. Sin SSE4.2/POPCNT el contenedor muere con:
+#   Fatal glibc error: CPU does not support x86-64-v2
+check_cpu_v2() {
+  [ "$(uname -m)" = "x86_64" ] || return 0
+  case "${OPENSEARCH_IMAGE:-opensearchproject/opensearch:}" in
+    opensearchproject/opensearch:*)
+      if ! grep -qw sse4_2 /proc/cpuinfo 2>/dev/null \
+         || ! grep -qw popcnt /proc/cpuinfo 2>/dev/null; then
+        warn "La CPU/VM no expone x86-64-v2 (SSE4.2/POPCNT)."
+        warn "La imagen oficial de OpenSearch >= 2.10 no podrá arrancar."
+        warn "En Proxmox: apagá la VM y poné Hardware > Processors > Type: host."
+        warn "Si no podés cambiar la CPU, definí OPENSEARCH_IMAGE en $ENV_FILE con una imagen compatible."
+      fi
+      ;;
+  esac
+}
+
 ENV_FILE=".env"
 COMPOSE_ARGS=(--env-file .env)
 if [ "$MODE" = "prod" ]; then
@@ -213,10 +231,17 @@ wait_search() {
       state="$(docker inspect -f '{{.State.Status}}' "$cid" 2>/dev/null || true)"
     fi
     if [ "$state" = "exited" ] || [ "$state" = "dead" ] || [ "$state" = "restarting" ]; then
-      local code
+      local code log
       code="$(docker inspect -f '{{.State.ExitCode}}' "$cid" 2>/dev/null || true)"
+      log="$(compose logs --tail=40 search 2>/dev/null || true)"
       warn "El contenedor search se detuvo (código ${code:-?}). Últimos logs:"
-      compose logs --tail=40 search || true
+      [ -n "$log" ] && printf '%s\n' "$log"
+      if printf '%s' "$log" | grep -q "x86-64-v2"; then
+        die "La CPU/VM no soporta x86-64-v2 (SSE4.2/POPCNT). OpenSearch oficial >= 2.10 no arranca en este servidor.
+      Solución recomendada: en Proxmox, apagá la VM y poné Hardware > Processors > Type: host; luego encendé la VM.
+      Si no controlás el hipervisor, definí OPENSEARCH_IMAGE en $ENV_FILE con una imagen compatible.
+      Verificá la CPU con: grep -o 'sse4_2\\|popcnt' /proc/cpuinfo | sort -u"
+      fi
       if [ "$code" = "137" ]; then
         die "OpenSearch se quedó sin memoria (OOM). Bajá OPENSEARCH_JAVA_OPTS (p. ej. -Xms512m -Xmx512m) y volvé a ejecutar ./setup.sh $MODE"
       fi
@@ -477,6 +502,7 @@ fi
 prepare_env
 fill_env_defaults
 ensure_host_setup
+check_cpu_v2
 up
 wait_db
 wait_search
