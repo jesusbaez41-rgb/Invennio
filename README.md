@@ -31,14 +31,11 @@ automáticamente (con `sudo`) y aborta con instrucciones si no puede hacerlo. Si
 el contenedor `search` no arranca, revisá `docker compose logs search`.
 
 La imagen oficial de OpenSearch 2.10+ requiere una CPU con `x86-64-v2`
-(SSE4.2 y POPCNT). Si el log muestra
-`Fatal glibc error: CPU does not support x86-64-v2`, la VM no expone ese nivel:
-
-- En Proxmox: apagar la VM, `Hardware > Processors > Type: host`, encender.
-- En VMware/VirtualBox: habilitar SSE4.2/POPCNT (EVC o CPU host).
-- Si no controlás el hipervisor: definir `OPENSEARCH_IMAGE` en `.env` con una
-  imagen de OpenSearch 2.12+ construida sobre una base compatible
-  (`amazonlinux:2` o Debian/Ubuntu 22.04).
+(SSE4.2 y POPCNT). Si el servidor no lo expone, `setup.sh` lo detecta y
+construye automáticamente `invennio/opensearch:2.18.0-oldcpu` (binarios
+oficiales de OpenSearch sobre Ubuntu 22.04 + Temurin) y la guarda como
+`OPENSEARCH_IMAGE` en `.env`. Si más adelante cambiás la CPU de la VM a
+`host`, borrá esa línea para volver a la imagen oficial.
 
 Verificación rápida de la CPU:
 
