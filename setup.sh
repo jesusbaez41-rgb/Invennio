@@ -115,8 +115,8 @@ ensure_swap() {
     warn "No hay sudo: se continúa sin swap."
     return 0
   fi
-  if ! sudo -v >/dev/null 2>&1; then
-    warn "No se pudo obtener sudo: se continúa sin swap."
+  if ! sudo -n true >/dev/null 2>&1; then
+    warn "No hay sudo sin contraseña: se continúa sin swap."
     return 0
   fi
 
