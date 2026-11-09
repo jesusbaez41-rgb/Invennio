@@ -191,7 +191,7 @@ wait_search() {
   local i state cid
   for i in $(seq 1 90); do
     if compose exec -T search \
-         sh -c "curl -fsS 'http://127.0.0.1:9200/_cluster/health'" \
+         sh -c "curl -fsS --connect-timeout 2 --max-time 5 'http://127.0.0.1:9200/_cluster/health'" \
          >/dev/null 2>&1; then
       ok "OpenSearch listo"
       return 0
@@ -294,7 +294,7 @@ search_has_indexes() {
   prefix="$(env_get INVENIO_SEARCH_INDEX_PREFIX "$ENV_FILE")"
   prefix="${prefix:-invenio-rdm-}"
   compose exec -T search sh -c \
-    "curl -fsS 'http://127.0.0.1:9200/_cat/indices/${prefix}*?h=index'" \
+    "curl -fsS --connect-timeout 2 --max-time 5 'http://127.0.0.1:9200/_cat/indices/${prefix}*?h=index'" \
     2>/dev/null | grep -q .
 }
 
@@ -393,7 +393,7 @@ verify() {
 
   info "Comprobando OpenSearch…"
   if compose exec -T search \
-       sh -c "curl -fsS 'http://127.0.0.1:9200/_cluster/health'" \
+       sh -c "curl -fsS --connect-timeout 2 --max-time 5 'http://127.0.0.1:9200/_cluster/health'" \
        >/dev/null 2>&1; then
     ok "OpenSearch responde"
   else
