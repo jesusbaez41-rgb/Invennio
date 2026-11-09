@@ -9,11 +9,11 @@
 # El JDK incluido por Amazon se reemplaza por Eclipse Temurin 21 (jammy).
 #
 # Construir:
-#   docker build -t invennio/opensearch:2.18.0-oldcpu \
+#   docker build -t invennio/opensearch:2.18.0-oldcpu-v2 \
 #     -f docker/opensearch-oldcpu/Dockerfile .
 #
 # Usar en .env:
-#   OPENSEARCH_IMAGE=invennio/opensearch:2.18.0-oldcpu
+#   OPENSEARCH_IMAGE=invennio/opensearch:2.18.0-oldcpu-v2
 
 FROM opensearchproject/opensearch:2.18.0 AS dist
 
@@ -31,7 +31,10 @@ RUN apt-get update \
 COPY --from=dist --chown=${UID}:${GID} /usr/share/opensearch /usr/share/opensearch
 
 # El JDK de la imagen oficial viene de Amazon Linux 2023; se usa Temurin.
-RUN rm -rf /usr/share/opensearch/jdk \
+# Además se quitan los plugins que InvenioRDM no usa (seguridad, ML, k-NN,
+# performance-analyzer, alerting, etc.): varios arrancan procesos o cargan
+# librerías nativas y consumen RAM de más en servidores pequeños.
+RUN rm -rf /usr/share/opensearch/jdk /usr/share/opensearch/plugins/* \
     && mkdir -p /usr/share/opensearch/data /usr/share/opensearch/logs \
     && chown -R "${UID}:${GID}" /usr/share/opensearch
 

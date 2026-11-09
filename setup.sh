@@ -99,13 +99,77 @@ ensure_host_setup() {
   fi
 }
 
+# Servidores pequeños (4 GB o menos) no tienen margen para OpenSearch.
+# Se crea un swapfile para evitar que el OOM killer lo termine.
+ensure_swap() {
+  [ "$(uname -s)" = "Linux" ] || return 0
+
+  local ram_mb swap_mb free_mb
+  ram_mb="$(awk '/^MemTotal:/{print int($2/1024)}' /proc/meminfo 2>/dev/null || echo 0)"
+  swap_mb="$(awk '/^SwapTotal:/{print int($2/1024)}' /proc/meminfo 2>/dev/null || echo 0)"
+  [ "${ram_mb:-0}" -ge 7000 ] && return 0
+  [ "${swap_mb:-0}" -ge 2048 ] && return 0
+
+  warn "RAM: ${ram_mb} MB, swap: ${swap_mb} MB. OpenSearch necesita margen."
+  if ! command -v sudo >/dev/null 2>&1; then
+    warn "No hay sudo: no se puede crear swap. OpenSearch podría quedarse sin memoria."
+    return 0
+  fi
+
+  free_mb="$(df -Pm / | awk 'NR==2{print $4}')"
+  if [ "${free_mb:-0}" -lt 5120 ]; then
+    warn "Espacio libre insuficiente para swap (${free_mb} MB). Se continúa sin swap."
+    return 0
+  fi
+
+  info "Creando swapfile de 4 GB…"
+  if [ ! -f /swapfile ]; then
+    sudo fallocate -l 4G /swapfile 2>/dev/null \
+      || sudo dd if=/dev/zero of=/swapfile bs=1M count=4096 status=none
+    sudo chmod 600 /swapfile
+    sudo mkswap /swapfile >/dev/null
+  fi
+  sudo swapon /swapfile >/dev/null 2>&1 || true
+
+  if swapon --show=NAME 2>/dev/null | grep -qx /swapfile; then
+    ok "Swap activo (4 GB)"
+    grep -qE '^/swapfile[[:space:]]' /etc/fstab 2>/dev/null \
+      || echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab >/dev/null
+  else
+    warn "No se pudo activar el swap. OpenSearch podría quedarse sin memoria."
+  fi
+}
+
+# Con poca RAM se evita el memory lock (impide usar swap) y se desactiva
+# el agente de performance-analyzer.
+tune_low_memory() {
+  [ "$(uname -s)" = "Linux" ] || return 0
+
+  local ram_mb
+  ram_mb="$(awk '/^MemTotal:/{print int($2/1024)}' /proc/meminfo 2>/dev/null || echo 0)"
+  [ "${ram_mb:-0}" -ge 7000 ] && return 0
+
+  info "Servidor con RAM limitada (${ram_mb} MB): ajustando OpenSearch…"
+  if [ -z "$(env_get OPENSEARCH_JAVA_OPTS "$ENV_FILE")" ]; then
+    # En menos de 4 GB, 256 MB de heap dejan margen para el resto del stack.
+    local heap="512m"
+    [ "${ram_mb:-0}" -lt 4096 ] && heap="256m"
+    env_set OPENSEARCH_JAVA_OPTS "-Xms${heap} -Xmx${heap}"
+  fi
+  [ -z "$(env_get BOOTSTRAP_MEMORY_LOCK "$ENV_FILE")" ] \
+    && env_set BOOTSTRAP_MEMORY_LOCK "false"
+  [ -z "$(env_get DISABLE_PERFORMANCE_ANALYZER_AGENT_CLI "$ENV_FILE")" ] \
+    && env_set DISABLE_PERFORMANCE_ANALYZER_AGENT_CLI "true"
+  ok "OpenSearch ajustado para poca RAM"
+}
+
 # Las imágenes oficiales de OpenSearch >= 2.10 (Amazon Linux 2023) exigen
 # x86-64-v2. Sin SSE4.2/POPCNT el contenedor muere con:
 #   Fatal glibc error: CPU does not support x86-64-v2
 # En ese caso se construye y usa automáticamente una variante compatible
 # (binarios oficiales sobre Ubuntu 22.04 + Temurin), salvo que el usuario
 # haya definido OPENSEARCH_IMAGE a mano.
-OPENSEARCH_COMPAT_IMAGE="invennio/opensearch:2.18.0-oldcpu"
+OPENSEARCH_COMPAT_IMAGE="invennio/opensearch:2.18.0-oldcpu-v2"
 
 cpu_v2_ok() {
   [ "$(uname -m)" = "x86_64" ] || return 0
@@ -116,6 +180,13 @@ cpu_v2_ok() {
 ensure_opensearch_image() {
   local configured
   configured="${OPENSEARCH_IMAGE:-$(env_get OPENSEARCH_IMAGE "$ENV_FILE")}"
+
+  # Migración desde la primera variante compatible (incluía todos los plugins).
+  if [ "$configured" = "invennio/opensearch:2.18.0-oldcpu" ]; then
+    warn "Actualizando la imagen compatible de OpenSearch (versión sin plugins)…"
+    configured=""
+  fi
+
   if [ -n "$configured" ]; then
     ok "Imagen de OpenSearch: $configured"
     return 0
@@ -257,10 +328,14 @@ wait_search() {
       return 0
     fi
 
-    cid="$(compose ps -q search 2>/dev/null || true)"
+    cid="$(compose ps -aq search 2>/dev/null | head -1)"
     state=""
     if [ -n "$cid" ]; then
       state="$(docker inspect -f '{{.State.Status}}' "$cid" 2>/dev/null || true)"
+    else
+      warn "El contenedor search no existe. Últimos logs:"
+      compose logs --tail=40 search || true
+      die "No se pudo crear el contenedor de OpenSearch. Revisá: docker compose logs search"
     fi
     if [ "$state" = "exited" ] || [ "$state" = "dead" ] || [ "$state" = "restarting" ]; then
       local code log
@@ -534,6 +609,8 @@ fi
 prepare_env
 fill_env_defaults
 ensure_host_setup
+ensure_swap
+tune_low_memory
 ensure_opensearch_image
 up
 wait_db

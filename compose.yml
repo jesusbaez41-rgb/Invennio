@@ -117,6 +117,8 @@ x-set-search: &search
   # Java configuration. Adjust memory for production service.
   OPENSEARCH_JAVA_OPTS: "${OPENSEARCH_JAVA_OPTS:--Xms512m -Xmx512m}"
   bootstrap.memory_lock: "${BOOTSTRAP_MEMORY_LOCK:-true}"
+  # El agente de performance-analyzer corre como proceso aparte y consume RAM.
+  DISABLE_PERFORMANCE_ANALYZER_AGENT_CLI: "${DISABLE_PERFORMANCE_ANALYZER_AGENT_CLI:-false}"
   # "Run in cluster mode for better performance and resilience.
   discovery.type: "${DISCOVERY_TYPE:-single-node}"
 # Web configuration.
@@ -204,7 +206,7 @@ services:
     build:
       context: .
     platform: linux/amd64
-    command: [ "celery", "-A", "invenio_app.celery", "worker", "--beat", "--schedule=/tmp/celerybeat-schedule", "--events", "--loglevel=WARNING" ]
+    command: [ "celery", "-A", "invenio_app.celery", "worker", "--beat", "--schedule=/tmp/celerybeat-schedule", "--concurrency=2", "--loglevel=WARNING" ]
     environment:
       <<: [ *base, *cache, *doi, *mail, *s3 ]
     volumes:

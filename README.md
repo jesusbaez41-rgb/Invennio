@@ -32,7 +32,7 @@ el contenedor `search` no arranca, revisá `docker compose logs search`.
 
 La imagen oficial de OpenSearch 2.10+ requiere una CPU con `x86-64-v2`
 (SSE4.2 y POPCNT). Si el servidor no lo expone, `setup.sh` lo detecta y
-construye automáticamente `invennio/opensearch:2.18.0-oldcpu` (binarios
+construye automáticamente `invennio/opensearch:2.18.0-oldcpu-v2` (binarios
 oficiales de OpenSearch sobre Ubuntu 22.04 + Temurin) y la guarda como
 `OPENSEARCH_IMAGE` en `.env`. Si más adelante cambiás la CPU de la VM a
 `host`, borrá esa línea para volver a la imagen oficial.
