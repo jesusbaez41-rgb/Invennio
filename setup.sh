@@ -183,16 +183,26 @@ wait_db() {
   die "PostgreSQL no respondió a tiempo. Revisá: docker compose logs db"
 }
 
+# Ejecuta la petición de salud dentro de search con un límite duro en el
+# propio host: si "docker compose exec" se bloquea, no cuelga el setup.
+search_http_ok() {
+  local cmd=(compose exec -T search sh -c \
+    "curl -fsS --connect-timeout 2 --max-time 5 'http://127.0.0.1:9200/_cluster/health'")
+  if command -v timeout >/dev/null 2>&1; then
+    timeout 15 "${cmd[@]}" >/dev/null 2>&1
+  else
+    "${cmd[@]}" >/dev/null 2>&1
+  fi
+}
+
 # Sin OpenSearch la web arranca igual, pero fallan "invenio index init" y
 # "invenio rdm-records custom-fields init". Por eso se espera y, si el
 # contenedor murió, se aborta con la causa en vez de seguir a ciegas.
 wait_search() {
   info "Esperando a OpenSearch…"
-  local i state cid
-  for i in $(seq 1 90); do
-    if compose exec -T search \
-         sh -c "curl -fsS --connect-timeout 2 --max-time 5 'http://127.0.0.1:9200/_cluster/health'" \
-         >/dev/null 2>&1; then
+  local i state cid attempts=150
+  for i in $(seq 1 "$attempts"); do
+    if search_http_ok; then
       ok "OpenSearch listo"
       return 0
     fi
@@ -212,11 +222,20 @@ wait_search() {
       fi
       die "OpenSearch no arrancó. Causa habitual: vm.max_map_count bajo o falta de memlock. Revisá: docker compose logs search"
     fi
+
+    if [ $((i % 15)) -eq 0 ]; then
+      info "OpenSearch aún no responde (${i}/${attempts}, estado: ${state:-desconocido})…"
+    fi
     sleep 2
   done
 
-  warn "OpenSearch no respondió a tiempo. Últimos logs:"
-  compose logs --tail=40 search || true
+  warn "OpenSearch no respondió tras $((attempts * 2)) segundos. Diagnóstico:"
+  compose ps search || true
+  docker stats --no-stream --format 'table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}' 2>/dev/null | head -5 || true
+  sysctl vm.max_map_count 2>/dev/null || true
+  free -h 2>/dev/null || true
+  warn "Últimos logs de OpenSearch:"
+  compose logs --tail=60 search || true
   die "OpenSearch no respondió a tiempo. Revisá: docker compose logs search"
 }
 
@@ -293,9 +312,13 @@ search_has_indexes() {
   local prefix
   prefix="$(env_get INVENIO_SEARCH_INDEX_PREFIX "$ENV_FILE")"
   prefix="${prefix:-invenio-rdm-}"
-  compose exec -T search sh -c \
-    "curl -fsS --connect-timeout 2 --max-time 5 'http://127.0.0.1:9200/_cat/indices/${prefix}*?h=index'" \
-    2>/dev/null | grep -q .
+  local cmd=(compose exec -T search sh -c \
+    "curl -fsS --connect-timeout 2 --max-time 5 'http://127.0.0.1:9200/_cat/indices/${prefix}*?h=index'")
+  if command -v timeout >/dev/null 2>&1; then
+    timeout 15 "${cmd[@]}" 2>/dev/null | grep -q .
+  else
+    "${cmd[@]}" 2>/dev/null | grep -q .
+  fi
 }
 
 # Repara instalaciones con la base de datos ya creada pero sin índices, por
@@ -392,9 +415,7 @@ verify() {
   url="$(public_url)"
 
   info "Comprobando OpenSearch…"
-  if compose exec -T search \
-       sh -c "curl -fsS --connect-timeout 2 --max-time 5 'http://127.0.0.1:9200/_cluster/health'" \
-       >/dev/null 2>&1; then
+  if search_http_ok; then
     ok "OpenSearch responde"
   else
     warn "OpenSearch no responde (la búsqueda y la creación de índices fallarán)"
