@@ -112,7 +112,11 @@ ensure_swap() {
 
   warn "RAM: ${ram_mb} MB, swap: ${swap_mb} MB. OpenSearch necesita margen."
   if ! command -v sudo >/dev/null 2>&1; then
-    warn "No hay sudo: no se puede crear swap. OpenSearch podría quedarse sin memoria."
+    warn "No hay sudo: se continúa sin swap."
+    return 0
+  fi
+  if ! sudo -v >/dev/null 2>&1; then
+    warn "No se pudo obtener sudo: se continúa sin swap."
     return 0
   fi
 
@@ -124,19 +128,24 @@ ensure_swap() {
 
   info "Creando swapfile de 4 GB…"
   if [ ! -f /swapfile ]; then
-    sudo fallocate -l 4G /swapfile 2>/dev/null \
-      || sudo dd if=/dev/zero of=/swapfile bs=1M count=4096 status=none
-    sudo chmod 600 /swapfile
-    sudo mkswap /swapfile >/dev/null
+    if ! sudo fallocate -l 4G /swapfile 2>/dev/null; then
+      sudo dd if=/dev/zero of=/swapfile bs=1M count=4096 status=none \
+        || { warn "No se pudo crear /swapfile. Se continúa sin swap."; return 0; }
+    fi
+    sudo chmod 600 /swapfile || true
+    if ! sudo mkswap /swapfile >/dev/null 2>&1; then
+      warn "No se pudo formatear /swapfile. Se continúa sin swap."
+      return 0
+    fi
   fi
   sudo swapon /swapfile >/dev/null 2>&1 || true
 
   if swapon --show=NAME 2>/dev/null | grep -qx /swapfile; then
     ok "Swap activo (4 GB)"
     grep -qE '^/swapfile[[:space:]]' /etc/fstab 2>/dev/null \
-      || echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab >/dev/null
+      || echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab >/dev/null || true
   else
-    warn "No se pudo activar el swap. OpenSearch podría quedarse sin memoria."
+    warn "No se pudo activar el swap. Se continúa sin swap."
   fi
 }
 
@@ -160,6 +169,11 @@ tune_low_memory() {
     && env_set BOOTSTRAP_MEMORY_LOCK "false"
   [ -z "$(env_get DISABLE_PERFORMANCE_ANALYZER_AGENT_CLI "$ENV_FILE")" ] \
     && env_set DISABLE_PERFORMANCE_ANALYZER_AGENT_CLI "true"
+  # Menos procesos = menos RAM. En 4 GB alcanza para un repositorio pequeño.
+  [ -z "$(env_get GUNICORN_WORKERS "$ENV_FILE")" ] \
+    && env_set GUNICORN_WORKERS "1"
+  [ -z "$(env_get CELERY_CONCURRENCY "$ENV_FILE")" ] \
+    && env_set CELERY_CONCURRENCY "1"
   ok "OpenSearch ajustado para poca RAM"
 }
 

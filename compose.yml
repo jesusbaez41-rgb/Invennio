@@ -27,6 +27,8 @@ x-set-base:
   # Default time zone.
   INVENIO_BABEL_DEFAULT_TIMEZONE: "${INVENIO_BABEL_DEFAULT_TIMEZONE:-UTC}"
   INVENIO_LOGGING_CONSOLE_LEVEL: "${INVENIO_LOGGING_CONSOLE_LEVEL:-INFO}"
+  # Evita que glibc cree una arena de malloc por hilo en Python (ahorra RAM).
+  MALLOC_ARENA_MAX: "${MALLOC_ARENA_MAX:-2}"
   # List of availablecitation styles.
   INVENIO_RDM_CITATION_STYLES: "${INVENIO_RDM_CITATION_STYLES:-apa,chicago-author-date,harvard-cite-them-right,ieee,vancouver}"
   INVENIO_RDM_CITATION_STYLES_DEFAULT: "${INVENIO_RDM_CITATION_STYLES_DEFAULT:-apa}"
@@ -188,6 +190,17 @@ services:
     build:
       context: .
     platform: linux/amd64
+    command:
+      - gunicorn
+      - invenio_app.wsgi:application
+      - --bind
+      - 0.0.0.0:5000
+      - --workers
+      - "${GUNICORN_WORKERS:-2}"
+      - --threads
+      - "4"
+      - --config
+      - /opt/invenio/var/instance/gunicorn.conf.py
     environment:
       <<: [ *base, *cache, *web, *authentication, *mail, *s3 ]
     volumes:
@@ -206,7 +219,7 @@ services:
     build:
       context: .
     platform: linux/amd64
-    command: [ "celery", "-A", "invenio_app.celery", "worker", "--beat", "--schedule=/tmp/celerybeat-schedule", "--concurrency=2", "--loglevel=WARNING" ]
+    command: [ "celery", "-A", "invenio_app.celery", "worker", "--beat", "--schedule=/tmp/celerybeat-schedule", "--concurrency=${CELERY_CONCURRENCY:-2}", "--loglevel=WARNING" ]
     environment:
       <<: [ *base, *cache, *doi, *mail, *s3 ]
     volumes:

@@ -43,6 +43,11 @@ Verificación rápida de la CPU:
 grep -o 'sse4_2\|popcnt' /proc/cpuinfo | sort -u
 ```
 
+En servidores con menos de 4 GB de RAM, `setup.sh` ajusta automáticamente
+`GUNICORN_WORKERS=1`, `CELERY_CONCURRENCY=1` y
+`OPENSEARCH_JAVA_OPTS=-Xms256m -Xmx256m`. Si hay `sudo`, también crea un
+swapfile de 4 GB; si no hay permisos, continúa sin swap.
+
 Variables opcionales:
 
 ```bash
