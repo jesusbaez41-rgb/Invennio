@@ -47,6 +47,15 @@ env_get() { # env_get CLAVE ARCHIVO
     | sed -E 's/^"(.*)"$/\1/; s/^'\''(.*)'\''$/\1/'
 }
 
+env_set() { # env_set CLAVE VALOR (usa $ENV_FILE)
+  local key="$1" val="$2"
+  if grep -qE "^[[:space:]]*${key}=" "$ENV_FILE" 2>/dev/null; then
+    sed -i -E "s|^[[:space:]]*${key}=.*|${key}=${val}|" "$ENV_FILE"
+  else
+    printf '%s=%s\n' "$key" "$val" >> "$ENV_FILE"
+  fi
+}
+
 rand_secret() {
   if command -v python3 >/dev/null 2>&1; then
     python3 -c "import secrets; print(secrets.token_urlsafe(48))"
@@ -93,19 +102,42 @@ ensure_host_setup() {
 # Las imágenes oficiales de OpenSearch >= 2.10 (Amazon Linux 2023) exigen
 # x86-64-v2. Sin SSE4.2/POPCNT el contenedor muere con:
 #   Fatal glibc error: CPU does not support x86-64-v2
-check_cpu_v2() {
+# En ese caso se construye y usa automáticamente una variante compatible
+# (binarios oficiales sobre Ubuntu 22.04 + Temurin), salvo que el usuario
+# haya definido OPENSEARCH_IMAGE a mano.
+OPENSEARCH_COMPAT_IMAGE="invennio/opensearch:2.18.0-oldcpu"
+
+cpu_v2_ok() {
   [ "$(uname -m)" = "x86_64" ] || return 0
-  case "${OPENSEARCH_IMAGE:-opensearchproject/opensearch:}" in
-    opensearchproject/opensearch:*)
-      if ! grep -qw sse4_2 /proc/cpuinfo 2>/dev/null \
-         || ! grep -qw popcnt /proc/cpuinfo 2>/dev/null; then
-        warn "La CPU/VM no expone x86-64-v2 (SSE4.2/POPCNT)."
-        warn "La imagen oficial de OpenSearch >= 2.10 no podrá arrancar."
-        warn "En Proxmox: apagá la VM y poné Hardware > Processors > Type: host."
-        warn "Si no podés cambiar la CPU, definí OPENSEARCH_IMAGE en $ENV_FILE con una imagen compatible."
-      fi
-      ;;
-  esac
+  grep -qw sse4_2 /proc/cpuinfo 2>/dev/null \
+    && grep -qw popcnt /proc/cpuinfo 2>/dev/null
+}
+
+ensure_opensearch_image() {
+  local configured
+  configured="${OPENSEARCH_IMAGE:-$(env_get OPENSEARCH_IMAGE "$ENV_FILE")}"
+  if [ -n "$configured" ]; then
+    ok "Imagen de OpenSearch: $configured"
+    return 0
+  fi
+
+  if cpu_v2_ok; then
+    return 0
+  fi
+
+  warn "La CPU/VM no expone x86-64-v2 (SSE4.2/POPCNT)."
+  warn "Se usará una imagen de OpenSearch compatible con CPUs antiguas."
+  if ! docker image inspect "$OPENSEARCH_COMPAT_IMAGE" >/dev/null 2>&1; then
+    info "Construyendo $OPENSEARCH_COMPAT_IMAGE (puede tardar unos minutos)…"
+    docker build -t "$OPENSEARCH_COMPAT_IMAGE" \
+      -f docker/opensearch-oldcpu/Dockerfile . \
+      || die "No se pudo construir la imagen compatible. Revisá la salida anterior."
+    ok "Imagen compatible construida"
+  else
+    ok "Imagen compatible ya disponible: $OPENSEARCH_COMPAT_IMAGE"
+  fi
+  env_set OPENSEARCH_IMAGE "$OPENSEARCH_COMPAT_IMAGE"
+  export OPENSEARCH_IMAGE="$OPENSEARCH_COMPAT_IMAGE"
 }
 
 ENV_FILE=".env"
@@ -502,7 +534,7 @@ fi
 prepare_env
 fill_env_defaults
 ensure_host_setup
-check_cpu_v2
+ensure_opensearch_image
 up
 wait_db
 wait_search
