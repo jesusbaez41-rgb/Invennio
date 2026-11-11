@@ -544,34 +544,16 @@ init_invenio() {
   ok "InvenioRDM inicializado"
 }
 
-# ¿Ya hay índices de Invenio en OpenSearch? Sirve para no repetir
-# "invenio index init", que aborta con IndexAlreadyExistsError.
-search_has_indexes() {
-  local prefix cid
-  prefix="$(env_get INVENIO_SEARCH_INDEX_PREFIX "$ENV_FILE")"
-  prefix="${prefix:-invenio-rdm-}"
-  cid="$(search_container_id)"
-  [ -n "$cid" ] || return 1
-  local cmd=(docker exec "$cid" sh -c \
-    "curl -fsS --connect-timeout 2 --max-time 5 'http://127.0.0.1:9200/_cat/indices/${prefix}*?h=index'")
-  if command -v timeout >/dev/null 2>&1; then
-    timeout 15 "${cmd[@]}" 2>/dev/null | grep -q .
-  else
-    "${cmd[@]}" 2>/dev/null | grep -q .
-  fi
-}
-
-# Repara instalaciones con la base de datos ya creada pero sin índices, por
-# ejemplo si OpenSearch no estaba listo durante la primera ejecución. Es
-# idempotente: no borra ni recrea índices existentes.
+# Crea los índices que falten sin tocar los existentes. `invenio index init`
+# no sirve aquí: aborta con IndexAlreadyExistsError si ya hay algún índice.
+# La API `current_search.create(ignore_existing=True)` sí es idempotente.
 ensure_search_indexes() {
   info "Verificando índices y campos personalizados en OpenSearch…"
-  if search_has_indexes; then
-    ok "Índices de búsqueda ya presentes"
-  else
-    CT web invenio index init \
-      || die "No se pudieron crear los índices en OpenSearch. Revisá: docker compose logs search"
-  fi
+  CT web invenio shell --no-term-title -c \
+    "from invenio_search.proxies import current_search; list(current_search.create(ignore=[400], ignore_existing=True))" \
+    || die "No se pudieron crear/verificar los índices en OpenSearch. Revisá: docker compose logs search"
+  ok "Índices de búsqueda listos"
+
   CT web invenio rdm-records custom-fields init \
     || die "No se pudieron crear los campos personalizados (requiere OpenSearch)."
   # Puede terminar en 0 aunque no haya campos configurados.
