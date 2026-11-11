@@ -438,13 +438,23 @@ wait_search() {
   die "OpenSearch no respondió a tiempo. Revisá: docker compose logs search"
 }
 
+web_url_ok() {
+  local url code
+  url="$(public_url)"
+  [ -n "$url" ] || return 1
+  code="$(curl -k -sL -o /dev/null -w '%{http_code}' --max-time 10 \
+          "$url/" 2>/dev/null || true)"
+  [ "$code" = "200" ]
+}
+
 wait_web() {
   info "Esperando a la aplicación web…"
+  info "La web puede tardar hasta 2 minutos en arrancar; no interrumpas…"
   local i cid state
   for i in $(seq 1 90); do
     if CT web python -c \
          "import socket; socket.create_connection(('127.0.0.1',5000),2)" \
-         >/dev/null 2>&1; then
+         >/dev/null 2>&1 || web_url_ok; then
       ok "Web escuchando en el puerto 5000"
       return 0
     fi
@@ -468,7 +478,7 @@ wait_web() {
       die "La web no arrancó. Revisá: docker compose logs web"
     fi
 
-    if [ $((i % 15)) -eq 0 ]; then
+    if [ $((i % 5)) -eq 0 ]; then
       info "La web aún no responde (${i}/90, estado: ${state:-desconocido})…"
     fi
     sleep 2
