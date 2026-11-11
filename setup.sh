@@ -233,7 +233,34 @@ if [ "$MODE" = "prod" ]; then
 fi
 
 compose() { docker compose "${COMPOSE_ARGS[@]}" "$@"; }
-CT() { compose exec -T "$@"; }
+
+service_cid() { # service_cid SERVICIO
+  compose ps -aq "$1" 2>/dev/null | head -1
+}
+
+CT() { # CT SERVICIO COMANDO...
+  local service="$1"; shift
+  local cid
+  cid="$(service_cid "$service")"
+  if [ -z "$cid" ]; then
+    warn "El contenedor de $service no está corriendo."
+    return 1
+  fi
+  docker exec -T "$cid" "$@"
+}
+
+CT_ROOT() { # CT_ROOT SERVICIO COMANDO...
+  local service="$1"; shift
+  local cid
+  cid="$(service_cid "$service")"
+  if [ -z "$cid" ]; then
+    warn "El contenedor de $service no está corriendo."
+    return 1
+  fi
+  docker exec -T -u root "$cid" "$@"
+}
+
+DB() { CT db "$@"; }
 
 # ---------------------------------------------------------------------------
 # 1. Archivo de entorno
@@ -309,7 +336,7 @@ wait_db() {
   user="$(env_get POSTGRES_USER "$ENV_FILE")"; user="${user:-postgres}"
   db="$(env_get POSTGRES_DB "$ENV_FILE")"; db="${db:-inveniordm}"
   for i in $(seq 1 60); do
-    if compose exec -T db pg_isready -U "$user" -d "$db" >/dev/null 2>&1; then
+    if CT db pg_isready -U "$user" -d "$db" >/dev/null 2>&1; then
       ok "PostgreSQL listo"
       return 0
     fi
@@ -410,14 +437,33 @@ wait_search() {
 
 wait_web() {
   info "Esperando a la aplicación web…"
-  local i
+  local i cid state
   for i in $(seq 1 90); do
-    if compose exec -T web python -c "import socket; socket.create_connection(('127.0.0.1',5000),2)" >/dev/null 2>&1; then
+    if CT web python -c \
+         "import socket; socket.create_connection(('127.0.0.1',5000),2)" \
+         >/dev/null 2>&1; then
       ok "Web escuchando en el puerto 5000"
       return 0
     fi
+
+    cid="$(service_cid web)"
+    state=""
+    [ -n "$cid" ] && state="$(docker inspect -f '{{.State.Status}}' "$cid" 2>/dev/null || true)"
+    if [ "$state" = "exited" ] || [ "$state" = "dead" ]; then
+      warn "El contenedor web se detuvo. Últimos logs:"
+      compose logs --tail=60 web || true
+      die "La web no arrancó. Revisá: docker compose logs web"
+    fi
+
+    if [ $((i % 15)) -eq 0 ]; then
+      info "La web aún no responde (${i}/90, estado: ${state:-desconocido})…"
+    fi
     sleep 2
   done
+
+  warn "La web no respondió a tiempo. Últimos logs:"
+  compose logs --tail=80 web || true
+  docker stats --no-stream --format 'table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}' 2>/dev/null | head -6 || true
   die "La web no arrancó. Revisá: docker compose logs web"
 }
 
@@ -426,7 +472,7 @@ db_initialized() {
   user="$(env_get POSTGRES_USER "$ENV_FILE")"; user="${user:-postgres}"
   db="$(env_get POSTGRES_DB "$ENV_FILE")"; db="${db:-inveniordm}"
   local out
-  out="$(compose exec -T db psql -U "$user" -d "$db" -tAc \
+  out="$(DB psql -U "$user" -d "$db" -tAc \
         "select to_regclass('public.accounts_user')" 2>/dev/null | tr -d '[:space:]')"
   [ "$out" = "accounts_user" ]
 }
@@ -436,7 +482,7 @@ db_initialized() {
 # ---------------------------------------------------------------------------
 init_invenio() {
   info "Inicializando base de datos, índices, roles y almacenamiento…"
-  compose exec -T -u root web chown -R 1654:0 /opt/invenio/var/instance/data 2>/dev/null || true
+  CT_ROOT web chown -R 1654:0 /opt/invenio/var/instance/data 2>/dev/null || true
 
   # Cada comando es idempotente en la práctica; si algo ya existe no se aborta.
   run_soft() { CT web "$@" || warn "Sin cambios: $*"; }
@@ -515,7 +561,7 @@ db_has_vocabularies() {
   local user db out
   user="$(env_get POSTGRES_USER "$ENV_FILE")"; user="${user:-postgres}"
   db="$(env_get POSTGRES_DB "$ENV_FILE")"; db="${db:-inveniordm}"
-  out="$(compose exec -T db psql -U "$user" -d "$db" -tAc \
+  out="$(DB psql -U "$user" -d "$db" -tAc \
         "select count(distinct id) from vocabularies_types
          where id in ('creatorsroles','contributorsroles','licenses','languages',
                       'relationtypes','resourcetypes','communitytypes')" \
@@ -555,7 +601,7 @@ create_admin() {
 
   [ -n "$email" ] && [ -n "$pass" ] || { warn "Sin INVENIO_ADMIN_EMAIL/PASSWORD: no se creó administrador"; return 0; }
 
-  exists="$(compose exec -T db psql -U "$user" -d "$db" -tAc \
+  exists="$(DB psql -U "$user" -d "$db" -tAc \
             "select 1 from accounts_user where email='${email//\'/\'\'}'" 2>/dev/null | tr -d '[:space:]')"
   if [ "$exists" = "1" ]; then
     ok "El administrador $email ya existe"
