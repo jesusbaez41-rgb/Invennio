@@ -260,7 +260,7 @@ CT_ROOT() { # CT_ROOT SERVICIO COMANDO...
   docker exec -T -u root "$cid" "$@"
 }
 
-DB() { CT db "$@"; }
+DB() { compose exec -T db "$@"; }
 
 # ---------------------------------------------------------------------------
 # 1. Archivo de entorno
@@ -336,7 +336,7 @@ wait_db() {
   user="$(env_get POSTGRES_USER "$ENV_FILE")"; user="${user:-postgres}"
   db="$(env_get POSTGRES_DB "$ENV_FILE")"; db="${db:-inveniordm}"
   for i in $(seq 1 60); do
-    if CT db pg_isready -U "$user" -d "$db" >/dev/null 2>&1; then
+    if DB pg_isready -U "$user" -d "$db" >/dev/null 2>&1; then
       ok "PostgreSQL listo"
       return 0
     fi
