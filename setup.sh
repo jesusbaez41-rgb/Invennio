@@ -234,8 +234,8 @@ fi
 
 compose() { docker compose "${COMPOSE_ARGS[@]}" "$@"; }
 
-service_cid() { # service_cid SERVICIO
-  compose ps -aq "$1" 2>/dev/null | head -1
+service_cid() { # service_cid SERVICIO (solo contenedor en ejecución)
+  compose ps -q "$1" 2>/dev/null | head -1
 }
 
 CT() { # CT SERVICIO COMANDO...
@@ -342,6 +342,8 @@ wait_db() {
     fi
     sleep 2
   done
+  warn "PostgreSQL no respondió a tiempo. Últimos logs:"
+  compose logs --tail=60 db || true
   die "PostgreSQL no respondió a tiempo. Revisá: docker compose logs db"
 }
 
@@ -349,7 +351,7 @@ wait_db() {
 # propio host. Usa `docker exec` sobre el ID (más fiable que compose exec)
 # y acepta el estado "healthy" del healthcheck como confirmación.
 search_container_id() {
-  compose ps -aq search 2>/dev/null | head -1
+  compose ps -q search 2>/dev/null | head -1
 }
 
 search_health_status() {
@@ -386,7 +388,8 @@ wait_search() {
       return 0
     fi
 
-    cid="$(compose ps -aq search 2>/dev/null | head -1)"
+    cid="$(search_container_id)"
+    [ -n "$cid" ] || cid="$(compose ps -aq search 2>/dev/null | head -1)"
     state=""
     if [ -n "$cid" ]; then
       state="$(docker inspect -f '{{.State.Status}}' "$cid" 2>/dev/null || true)"
