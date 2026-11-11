@@ -450,11 +450,21 @@ wait_web() {
     fi
 
     cid="$(service_cid web)"
+    if [ -z "$cid" ]; then
+      cid="$(compose ps -aq web 2>/dev/null | head -1)"
+      if [ -z "$cid" ]; then
+        warn "El contenedor web no existe. Últimos logs:"
+        compose logs --tail=80 web || true
+        die "La web no arrancó. Revisá: docker compose logs web"
+      fi
+    fi
     state=""
     [ -n "$cid" ] && state="$(docker inspect -f '{{.State.Status}}' "$cid" 2>/dev/null || true)"
-    if [ "$state" = "exited" ] || [ "$state" = "dead" ]; then
-      warn "El contenedor web se detuvo. Últimos logs:"
-      compose logs --tail=60 web || true
+    if [ "$state" = "exited" ] || [ "$state" = "dead" ] || [ "$state" = "restarting" ]; then
+      local code
+      code="$(docker inspect -f '{{.State.ExitCode}}' "$cid" 2>/dev/null || true)"
+      warn "El contenedor web se detuvo (código ${code:-?}). Últimos logs:"
+      docker logs --tail=80 "$cid" 2>&1 || true
       die "La web no arrancó. Revisá: docker compose logs web"
     fi
 

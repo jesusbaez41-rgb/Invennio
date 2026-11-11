@@ -190,17 +190,6 @@ services:
     build:
       context: .
     platform: linux/amd64
-    command:
-      - gunicorn
-      - invenio_app.wsgi:application
-      - --bind
-      - 0.0.0.0:5000
-      - --workers
-      - "${GUNICORN_WORKERS:-2}"
-      - --threads
-      - "4"
-      - --config
-      - /opt/invenio/var/instance/gunicorn.conf.py
     environment:
       <<: [ *base, *cache, *web, *authentication, *mail, *s3 ]
     volumes:
