@@ -40,6 +40,11 @@ def create_blueprint(app):
     """Create the UNAE admin blueprint."""
     blueprint = Blueprint("unae_admin", __name__)
 
+    @blueprint.route("/about")
+    def about():
+        """Public page with the course and student credits."""
+        return render_template("unae_admin/about.html")
+
     @blueprint.route("/administration/users/create", methods=["GET", "POST"])
     @administration_permission.require(http_exception=403)
     def create_user():

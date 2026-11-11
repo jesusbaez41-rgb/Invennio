@@ -5,10 +5,15 @@
 
 <div class="unae-footer-bottom">
   <div class="ui container unae-footer-bottom-inner">
-    <p>
-      © 2026 {{ _(config.THEME_SITENAME) }} ·
-      {{ _("Ministerio de Salud Pública y Bienestar Social") }}
-    </p>
+    <div class="unae-footer-credits">
+      <p>
+        © 2026 {{ _(config.THEME_SITENAME) }} ·
+        {{ _("Ministerio de Salud Pública y Bienestar Social") }}
+      </p>
+      <p class="unae-footer-donation">
+        {{ _("Donación realizada por alumnos de 4° Curso de Análisis de Sistemas Informáticos de la UNAE") }}
+      </p>
+    </div>
     <div class="unae-footer-meta">
       <a href="https://www.mspbs.gov.py/" target="_blank" rel="noopener noreferrer">mspbs.gov.py</a>
       {% if config.I18N_LANGUAGES %}

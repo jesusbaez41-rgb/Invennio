@@ -1266,6 +1266,17 @@ button.ui.button {
   color: rgba(180, 205, 229, 0.75);
 }
 
+.unae-footer-credits {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.unae-footer-donation {
+  color: #f3c3c4 !important;
+  font-weight: 600;
+}
+
 .unae-footer-bottom .unae-footer-meta {
   display: flex;
   align-items: center;
