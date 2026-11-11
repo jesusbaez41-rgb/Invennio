@@ -246,7 +246,7 @@ CT() { # CT SERVICIO COMANDO...
     warn "El contenedor de $service no está corriendo."
     return 1
   fi
-  docker exec -T "$cid" "$@"
+  docker exec "$cid" "$@"
 }
 
 CT_ROOT() { # CT_ROOT SERVICIO COMANDO...
@@ -257,7 +257,7 @@ CT_ROOT() { # CT_ROOT SERVICIO COMANDO...
     warn "El contenedor de $service no está corriendo."
     return 1
   fi
-  docker exec -T -u root "$cid" "$@"
+  docker exec -u root "$cid" "$@"
 }
 
 DB() { compose exec -T db "$@"; }
@@ -367,7 +367,7 @@ search_http_ok() {
   [ -n "$cid" ] || return 1
   [ "$(search_health_status)" = "healthy" ] && return 0
 
-  local cmd=(docker exec -T "$cid" sh -c \
+  local cmd=(docker exec "$cid" sh -c \
     "curl -fsS --connect-timeout 2 --max-time 5 'http://127.0.0.1:9200/_cluster/health'")
   if command -v timeout >/dev/null 2>&1; then
     timeout 15 "${cmd[@]}" >/dev/null 2>&1
@@ -429,7 +429,7 @@ wait_search() {
   free -h 2>/dev/null || true
   if [ -n "$cid" ]; then
     warn "Prueba directa a OpenSearch:"
-    docker exec -T "$cid" sh -c \
+    docker exec "$cid" sh -c \
       "curl -v --connect-timeout 2 --max-time 5 'http://127.0.0.1:9200/_cluster/health'" \
       2>&1 | tail -15 || true
   fi
@@ -552,7 +552,7 @@ search_has_indexes() {
   prefix="${prefix:-invenio-rdm-}"
   cid="$(search_container_id)"
   [ -n "$cid" ] || return 1
-  local cmd=(docker exec -T "$cid" sh -c \
+  local cmd=(docker exec "$cid" sh -c \
     "curl -fsS --connect-timeout 2 --max-time 5 'http://127.0.0.1:9200/_cat/indices/${prefix}*?h=index'")
   if command -v timeout >/dev/null 2>&1; then
     timeout 15 "${cmd[@]}" 2>/dev/null | grep -q .
