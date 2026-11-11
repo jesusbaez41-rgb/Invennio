@@ -319,9 +319,26 @@ wait_db() {
 }
 
 # Ejecuta la petición de salud dentro de search con un límite duro en el
-# propio host: si "docker compose exec" se bloquea, no cuelga el setup.
+# propio host. Usa `docker exec` sobre el ID (más fiable que compose exec)
+# y acepta el estado "healthy" del healthcheck como confirmación.
+search_container_id() {
+  compose ps -aq search 2>/dev/null | head -1
+}
+
+search_health_status() {
+  local cid
+  cid="$(search_container_id)"
+  [ -n "$cid" ] || return 1
+  docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{end}}' "$cid" 2>/dev/null
+}
+
 search_http_ok() {
-  local cmd=(compose exec -T search sh -c \
+  local cid
+  cid="$(search_container_id)"
+  [ -n "$cid" ] || return 1
+  [ "$(search_health_status)" = "healthy" ] && return 0
+
+  local cmd=(docker exec -T "$cid" sh -c \
     "curl -fsS --connect-timeout 2 --max-time 5 'http://127.0.0.1:9200/_cluster/health'")
   if command -v timeout >/dev/null 2>&1; then
     timeout 15 "${cmd[@]}" >/dev/null 2>&1
@@ -380,6 +397,12 @@ wait_search() {
   docker stats --no-stream --format 'table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}' 2>/dev/null | head -5 || true
   sysctl vm.max_map_count 2>/dev/null || true
   free -h 2>/dev/null || true
+  if [ -n "$cid" ]; then
+    warn "Prueba directa a OpenSearch:"
+    docker exec -T "$cid" sh -c \
+      "curl -v --connect-timeout 2 --max-time 5 'http://127.0.0.1:9200/_cluster/health'" \
+      2>&1 | tail -15 || true
+  fi
   warn "Últimos logs de OpenSearch:"
   compose logs --tail=60 search || true
   die "OpenSearch no respondió a tiempo. Revisá: docker compose logs search"
@@ -455,10 +478,12 @@ init_invenio() {
 # ¿Ya hay índices de Invenio en OpenSearch? Sirve para no repetir
 # "invenio index init", que aborta con IndexAlreadyExistsError.
 search_has_indexes() {
-  local prefix
+  local prefix cid
   prefix="$(env_get INVENIO_SEARCH_INDEX_PREFIX "$ENV_FILE")"
   prefix="${prefix:-invenio-rdm-}"
-  local cmd=(compose exec -T search sh -c \
+  cid="$(search_container_id)"
+  [ -n "$cid" ] || return 1
+  local cmd=(docker exec -T "$cid" sh -c \
     "curl -fsS --connect-timeout 2 --max-time 5 'http://127.0.0.1:9200/_cat/indices/${prefix}*?h=index'")
   if command -v timeout >/dev/null 2>&1; then
     timeout 15 "${cmd[@]}" 2>/dev/null | grep -q .
