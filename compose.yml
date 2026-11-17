@@ -146,6 +146,14 @@ services:
       <<: [ *db ]
     volumes:
       - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-inveniordm}
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
 
   # Describes the Caddy proxy service configuration.
   # Link: https://docker-compose.de/en/proxy/caddy/

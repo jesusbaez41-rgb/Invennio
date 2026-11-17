@@ -332,27 +332,45 @@ up() {
 
 wait_db() {
   info "Esperando a PostgreSQL…"
-  local user db i cid state
+  local user db i cid state health
   user="$(env_get POSTGRES_USER "$ENV_FILE")"; user="${user:-postgres}"
   db="$(env_get POSTGRES_DB "$ENV_FILE")"; db="${db:-inveniordm}"
   for i in $(seq 1 60); do
-    if DB pg_isready -U "$user" -d "$db" >/dev/null 2>&1; then
-      ok "PostgreSQL listo"
-      return 0
-    fi
-
     cid="$(service_cid db)"
     [ -n "$cid" ] || cid="$(compose ps -aq db 2>/dev/null | head -1)"
-    state=""
-    [ -n "$cid" ] && state="$(docker inspect -f '{{.State.Status}}' "$cid" 2>/dev/null || true)"
-    if [ "$state" = "exited" ] || [ "$state" = "dead" ]; then
-      warn "El contenedor db se detuvo (estado: $state). Últimos logs:"
+    if [ -z "$cid" ]; then
+      warn "El contenedor db no existe."
       compose logs --tail=60 db || true
       die "PostgreSQL no arrancó. Revisá: docker compose logs db"
     fi
 
+    state="$(docker inspect -f '{{.State.Status}}' "$cid" 2>/dev/null || true)"
+    health="$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{end}}' "$cid" 2>/dev/null || true)"
+
+    if [ "$health" = "healthy" ]; then
+      ok "PostgreSQL listo"
+      return 0
+    fi
+
+    if [ "$state" = "exited" ] || [ "$state" = "dead" ] || [ "$health" = "unhealthy" ]; then
+      warn "El contenedor db no está sano (estado: ${state:-?}, health: ${health:-?}). Últimos logs:"
+      compose logs --tail=60 db || true
+      die "PostgreSQL no arrancó. Revisá: docker compose logs db"
+    fi
+
+    # Respaldo para contenedores creados antes de tener healthcheck.
+    if [ -z "$health" ] && [ $((i % 3)) -eq 0 ]; then
+      if command -v timeout >/dev/null 2>&1; then
+        timeout 5 docker exec "$cid" pg_isready -U "$user" -d "$db" >/dev/null 2>&1 \
+          && { ok "PostgreSQL listo"; return 0; }
+      else
+        docker exec "$cid" pg_isready -U "$user" -d "$db" >/dev/null 2>&1 \
+          && { ok "PostgreSQL listo"; return 0; }
+      fi
+    fi
+
     if [ $((i % 5)) -eq 0 ]; then
-      info "PostgreSQL aún no responde (${i}/60, estado: ${state:-desconocido})…"
+      info "PostgreSQL aún no responde (${i}/60, estado: ${state:-desconocido}, health: ${health:-sin healthcheck})…"
     fi
     sleep 2
   done
