@@ -26,6 +26,33 @@ El script es idempotente: crea el archivo de entorno si falta, levanta los
 contenedores, inicializa base de datos, índices, roles y almacenamiento (solo
 la primera vez), crea el administrador y verifica que el sitio responda.
 
+Antes de tocar nada muestra el plan completo y avanza por 12 fases numeradas,
+indicando el comando que ejecuta, cuánto tardó cada una y qué queda pendiente:
+
+```text
+Plan de instalación (prod)
+   1. Archivo de entorno .env.prod (secretos, URL, base de datos)
+   ...
+  12. Verificación final (web, OpenSearch, contenedores)
+
+==> [6/12] Esperando a PostgreSQL (normalmente 10–30 s)
+  ✓ PostgreSQL listo
+      (esta fase tardó 4s)
+
+==> [9/12] Inicializando InvenioRDM (tablas, roles, índices: 3–10 min)
+      $ invenio db init create
+  ✓ Base de datos: tablas y extensiones (12s)
+```
+
+Al final imprime la URL pública, el administrador, el estado de cada contenedor
+y los comandos de operación (`logs`, `restart`, `ps`).
+
+Si algo falla, el diagnóstico completo se obtiene con:
+
+```bash
+./diagnostico.sh prod    # o ./diagnostico.sh local
+```
+
 En Linux, OpenSearch necesita `vm.max_map_count >= 262144`. El script lo ajusta
 automáticamente (con `sudo`) y aborta con instrucciones si no puede hacerlo. Si
 el contenedor `search` no arranca, revisá `docker compose logs search`.
@@ -70,6 +97,22 @@ ejecutar el script para repararla:
 Credenciales y secretos quedan en `.env` (local) o `.env.prod` (producción).
 En producción, Apache debe proxyear a `127.0.0.1:5000`; hay configuraciones
 listas en `apache/`.
+
+### Si el `.env` viene de Windows (CRLF)
+
+Un `.env` guardado o pegado desde Windows trae `\r` al final de cada valor. Eso
+crea roles como `postgres\r`, rompe la contraseña y deja URLs con carácter
+invisible. `setup.sh` lo detecta y normaliza solo en cada ejecución; para
+comprobarlo a mano:
+
+```bash
+grep -c $'\r' .env.prod     # 0 = correcto
+sed -i 's/\r$//' .env.prod  # arreglo manual
+```
+
+Si la base ya se creó con esos nombres, hay que renombrar el rol y la base
+(o recrear el volumen `db-data` si está vacía). El script `diagnostico.sh`
+informa del problema en la sección «ARCHIVOS DE ENTORNO».
 
 ### Límites de recursos en producción
 

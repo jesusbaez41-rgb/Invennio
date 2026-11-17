@@ -24,11 +24,64 @@ MODE="${1:-}"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT_DIR"
 
-BOLD=$'\033[1m'; GREEN=$'\033[0;32m'; YELLOW=$'\033[0;33m'; RED=$'\033[0;31m'; NC=$'\033[0m'
+BOLD=$'\033[1m'; DIM=$'\033[2m'; GREEN=$'\033[0;32m'; YELLOW=$'\033[0;33m'; RED=$'\033[0;31m'; NC=$'\033[0m'
 info()  { echo "${BOLD}==>${NC} $*"; }
 ok()    { echo "${GREEN}  ✓${NC} $*"; }
 warn()  { echo "${YELLOW}  !${NC} $*"; }
 die()   { echo "${RED}  ✗${NC} $*" >&2; exit 1; }
+
+# Pasos numerados: la instalación avanza por fases y cada una se anuncia antes
+# de ejecutarse, para que nunca parezca que el script "se quedó ahí".
+STEP=0
+STEP_TOTAL=12
+STEP_START=0
+
+step() { # step "descripción de la fase"
+  STEP=$((STEP + 1))
+  STEP_START="$(date +%s 2>/dev/null || echo 0)"
+  printf '\n%s==> [%d/%d]%s %s\n' "$BOLD" "$STEP" "$STEP_TOTAL" "$NC" "$*"
+}
+
+step_time() {
+  local now secs
+  now="$(date +%s 2>/dev/null || echo 0)"
+  [ "${STEP_START:-0}" -gt 0 ] && [ "$now" -gt 0 ] || return 0
+  secs=$((now - STEP_START))
+  printf '      %s(esta fase tardó %ss)%s\n' "$DIM" "$secs" "$NC"
+}
+
+# Muestra el comando que se ejecuta dentro del contenedor, ocultando secretos.
+show_cmd() {
+  local args=("$@") out=() a mask_next=0
+  for a in "${args[@]}"; do
+    if [ "$mask_next" = 1 ]; then out+=("***"); mask_next=0; continue; fi
+    case "$a" in
+      --password|--secret|--token) out+=("$a"); mask_next=1 ;;
+      *) out+=("$a") ;;
+    esac
+  done
+  printf '      %s$ %s%s\n' "$DIM" "${out[*]}" "$NC"
+}
+
+show_plan() {
+  printf '\n%sPlan de instalación (%s)%s\n' "$BOLD" "$MODE" "$NC"
+  cat <<EOF
+   1. Archivo de entorno ${ENV_FILE} (secretos, URL, base de datos)
+   2. Ajustes del sistema: vm.max_map_count y swap
+   3. Memoria de OpenSearch según la RAM del servidor
+   4. Imagen de OpenSearch compatible con la CPU
+   5. Contenedores: db, cache, search, web, worker
+   6. PostgreSQL: esperar a que acepte conexiones
+   7. OpenSearch: esperar a que publique el clúster
+   8. Web: gunicorn escuchando en el puerto 5000
+   9. InvenioRDM: tablas, roles, índices, campos personalizados
+  10. Vocabularios obligatorios (communitytypes, licenses, languages…)
+  11. Administrador inicial y sus permisos
+  12. Verificación final (web, OpenSearch, contenedores)
+
+No se borra nada: todos los pasos son idempotentes y se pueden repetir.
+EOF
+}
 
 usage() {
   sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'
@@ -596,24 +649,42 @@ db_initialized() {
 # 4. Inicialización de InvenioRDM (solo la primera vez)
 # ---------------------------------------------------------------------------
 init_invenio() {
-  info "Inicializando base de datos, índices, roles y almacenamiento…"
+  info "Se preparan tablas, roles, índices y almacenamiento de archivos."
+  T0="$(date +%s 2>/dev/null || echo 0)"
   CT_ROOT web chown -R 1654:0 /opt/invenio/var/instance/data 2>/dev/null || true
 
   # Cada comando es idempotente en la práctica; si algo ya existe no se aborta.
-  run_soft() { CT web "$@" || warn "Sin cambios: $*"; }
+  run_soft() { # run_soft "descripción" COMANDO...
+    local desc="$1"; shift
+    local t0 t1 rc
+    show_cmd "$@"
+    t0="$(date +%s 2>/dev/null || echo 0)"
+    if CT web "$@"; then rc=0; else rc=$?; fi
+    t1="$(date +%s 2>/dev/null || echo 0)"
+    if [ "$rc" -eq 0 ]; then
+      ok "$desc ($((t1 - t0))s)"
+    else
+      warn "Sin cambios: $desc (código $rc; normalmente significa que ya existía)"
+    fi
+    return 0
+  }
 
-  run_soft invenio db init create
+  run_soft "Base de datos: tablas y extensiones" invenio db init create
+
+  show_cmd invenio files location list
   if ! CT web invenio files location list 2>/dev/null | grep -qi "default"; then
-    run_soft invenio files location create --default default \
+    run_soft "Almacenamiento local de archivos" invenio files location create --default default \
       "file:///opt/invenio/var/instance/data"
+  else
+    ok "Ubicación de archivos ya configurada"
   fi
 
-  run_soft invenio roles create admin
-  run_soft invenio access allow superuser-access role admin
-  run_soft invenio roles create administration
-  run_soft invenio access allow administration-access role administration
-  run_soft invenio roles create administration-moderation
-  run_soft invenio access allow administration-moderation role administration-moderation
+  run_soft "Rol admin" invenio roles create admin
+  run_soft "Permiso superusuario para admin" invenio access allow superuser-access role admin
+  run_soft "Rol administration" invenio roles create administration
+  run_soft "Permiso de administración" invenio access allow administration-access role administration
+  run_soft "Rol administration-moderation" invenio roles create administration-moderation
+  run_soft "Permiso de moderación" invenio access allow administration-moderation role administration-moderation
 
   # Los índices viven en OpenSearch. Se crean solo si aún no existen, porque
   # "invenio index init" falla cuando los índices ya están creados.
@@ -624,16 +695,19 @@ init_invenio() {
   # invenio-vocabularies espera que existan los tipos (communitytypes,
   # resourcetypes, languages, licenses, ...). El comando es idempotente y no
   # crea registros de ejemplo (records.yaml/communities.yaml están vacíos).
-  run_soft invenio rdm-records fixtures
+  run_soft "Vocabularios y fixtures de InvenioRDM" invenio rdm-records fixtures
 
   if [ "${SEED_DEMO:-0}" = "1" ]; then
-    run_soft invenio rdm-records demo communities
-    run_soft invenio rdm-records demo records
+    run_soft "Comunidades de ejemplo" invenio rdm-records demo communities
+    run_soft "Registros de ejemplo" invenio rdm-records demo records
   fi
 
-  run_soft invenio rdm rebuild-all-indices
-  run_soft invenio queues declare
-  ok "InvenioRDM inicializado"
+  run_soft "Reconstruyendo índices de búsqueda" invenio rdm rebuild-all-indices
+  run_soft "Colas de tareas (Celery)" invenio queues declare
+
+  local t1
+  t1="$(date +%s 2>/dev/null || echo 0)"
+  ok "InvenioRDM inicializado en $((t1 - T0))s"
 }
 
 # Crea los índices que falten sin tocar los existentes. `invenio index init`
@@ -641,16 +715,18 @@ init_invenio() {
 # La API `current_search.create(ignore_existing=True)` sí es idempotente.
 ensure_search_indexes() {
   info "Verificando índices y campos personalizados en OpenSearch…"
+  show_cmd invenio shell --no-term-title -c "current_search.create(ignore_existing=True)"
   CT web invenio shell --no-term-title -c \
     "from invenio_search.proxies import current_search; list(current_search.create(ignore=[400], ignore_existing=True))" \
     || die "No se pudieron crear/verificar los índices en OpenSearch. Revisá: docker compose logs search"
-  ok "Índices de búsqueda listos"
+  ok "Índices de búsqueda listos (se crean solo los que faltan)"
 
+  show_cmd invenio rdm-records custom-fields init
   CT web invenio rdm-records custom-fields init \
     || die "No se pudieron crear los campos personalizados (requiere OpenSearch)."
   # Puede terminar en 0 aunque no haya campos configurados.
   CT web invenio communities custom-fields init >/dev/null 2>&1 || true
-  ok "Índices y campos personalizados listos"
+  ok "Campos personalizados de registros y comunidades listos"
 }
 
 # Comprueba que los tipos de vocabulario esenciales existan en la base de datos.
@@ -676,6 +752,7 @@ ensure_vocabularies() {
   fi
 
   info "Cargando vocabularios requeridos (communitytypes, resourcetypes, languages…)"
+  show_cmd invenio rdm-records fixtures
   CT web invenio rdm-records fixtures
 
   if db_has_vocabularies; then
@@ -704,11 +781,14 @@ create_admin() {
     ok "El administrador $email ya existe"
   else
     info "Creando administrador $email…"
+    show_cmd invenio users create "$email" --password "***" --active --confirm
     CT web invenio users create "$email" --password "$pass" --active --confirm \
       || die "No se pudo crear el administrador. Revisá que el correo sea válido y la contraseña tenga al menos 8 caracteres."
     ok "Administrador creado"
   fi
+  show_cmd invenio roles add "$email" admin
   CT web invenio roles add "$email" admin >/dev/null 2>&1 || true
+  show_cmd invenio roles add "$email" administration
   CT web invenio roles add "$email" administration >/dev/null 2>&1 || true
 }
 
@@ -788,47 +868,90 @@ if [ "$MODE" = "verify" ]; then
   exit $?
 fi
 
+show_plan
+
+step "Preparando el archivo de entorno ($ENV_FILE)"
 prepare_env
 fill_env_defaults
+step_time
+
+step "Ajustes del sistema: vm.max_map_count y swap"
 ensure_host_setup
 ensure_swap
+step_time
+
+step "Ajustando OpenSearch a la memoria disponible"
 tune_low_memory
+step_time
+
+step "Comprobando la imagen de OpenSearch para esta CPU"
 ensure_opensearch_image
+step_time
+
+step "Levantando los contenedores (db, cache, search, web, worker)"
 up
+step_time
+
+step "Esperando a PostgreSQL (normalmente 10–30 s)"
 wait_db
+step_time
+
+step "Esperando a OpenSearch (1–3 min la primera vez)"
 wait_search
+step_time
+
+step "Esperando a la aplicación web (30 s – 2 min)"
 wait_web
+step_time
 
 if db_initialized; then
-  ok "La base de datos ya estaba inicializada (se omite la instalación inicial)"
-  # Puede faltar la creación de índices si OpenSearch no estaba listo antes.
+  step "Base de datos ya inicializada: comprobando índices y campos"
+  ok "La base de datos ya existía (se omite la instalación inicial)"
   ensure_search_indexes
 else
+  step "Inicializando InvenioRDM (tablas, roles, índices: 3–10 min)"
   init_invenio
 fi
+step_time
 
-# También en instalaciones ya existentes: los vocabularios son imprescindibles
-# para los ajustes de comunidad, el depósito de registros, etc.
+step "Comprobando los vocabularios obligatorios"
 ensure_vocabularies
+step_time
 
+step "Creando el administrador inicial"
 create_admin
+step_time
 
-info "Verificando instalación…"
-verify || die "La instalación terminó pero la verificación falló. Revisá los logs."
+step "Verificación final"
+verify || die "La instalación terminó pero la verificación falló. Revisá los logs de arriba."
+step_time
 
 URL="$(public_url)"
+ADMIN_SHOW="${ADMIN_EMAIL:-$(env_get INVENIO_ADMIN_EMAIL "$ENV_FILE")}"
 echo
 echo "${BOLD}${GREEN}Listo.${NC} Repositorio HGI funcionando en ${BOLD}${URL}${NC}"
-echo "  Administrador : ${BOLD}${ADMIN_EMAIL:-$(env_get INVENIO_ADMIN_EMAIL "$ENV_FILE")}${NC}"
-echo "  Contraseña    : (la definida en $ENV_FILE)"
+echo
+printf '  %-14s %s\n' "Sitio" "$URL"
+printf '  %-14s %s\n' "Administrador" "${ADMIN_SHOW:-sin definir}"
+printf '  %-14s %s\n' "Contraseña" "la definida en $ENV_FILE"
+printf '  %-14s %s\n' "Modo" "$MODE"
+printf '  %-14s %s\n' "Datos" "volúmenes db-data, instance-data y search-data"
+echo
+echo "  Contenedores:"
+compose ps --format '    {{.Name}}  {{.Status}}' || true
+echo
+echo "  Comandos útiles:"
+printf '    %sestado   %s docker compose %s ps\n' "$DIM" "$NC" "${COMPOSE_ARGS[*]}"
+printf '    %slogs web %s docker compose %s logs -f web\n' "$DIM" "$NC" "${COMPOSE_ARGS[*]}"
+printf '    %sreiniciar%s docker compose %s restart web\n' "$DIM" "$NC" "${COMPOSE_ARGS[*]}"
+printf '    %sreparar  %s ./setup.sh %s\n' "$DIM" "$NC" "$MODE"
+echo
 if [ "$MODE" = "local" ]; then
-  echo
   echo "  Nota: el certificado de Caddy es autofirmado. Para evitar el aviso del"
   echo "  navegador, importá data/caddy/pki/authorities/local/root.crt en tu sistema."
   echo "  Cambios de plantillas/CSS: docker compose restart web"
 else
-  echo
-  echo "  Apache debe proxyear a 127.0.0.1:5000. Configuraciones listas en:"
+  echo "  Apache/aaPanel debe proxyear a 127.0.0.1:5000. Configuraciones listas en:"
   echo "    apache/repositorio-unae.conf          (Apache del sistema)"
   echo "    apache/repositorio-unae-aapanel.conf  (aaPanel)"
   echo "  Tras cambiar variables de entorno: docker compose ${COMPOSE_ARGS[*]} up -d web worker"
