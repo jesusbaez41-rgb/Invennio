@@ -260,7 +260,7 @@ CT_ROOT() { # CT_ROOT SERVICIO COMANDO...
   docker exec -u root "$cid" "$@"
 }
 
-DB() { compose exec -T db "$@"; }
+DB() { CT db "$@"; }
 
 # ---------------------------------------------------------------------------
 # 1. Archivo de entorno
