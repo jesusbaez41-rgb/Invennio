@@ -80,6 +80,7 @@ show_plan() {
   12. Verificación final (web, OpenSearch, contenedores)
 
 No se borra nada: todos los pasos son idempotentes y se pueden repetir.
+Podés cortar con Ctrl+C en cualquier momento: no se pierde ningún dato.
 EOF
 }
 
@@ -296,10 +297,12 @@ service_cid() { # service_cid SERVICIO (solo contenedor en ejecución)
   compose ps -q "$1" 2>/dev/null | head -1
 }
 
-# En algunos servidores `docker exec` no devuelve el control aunque el comando
-# de dentro ya haya terminado. Todos los exec pasan por `timeout` para que
-# ningún paso pueda bloquear la instalación. Ajustable con CT_TIMEOUT=segundos.
-CT_TIMEOUT="${CT_TIMEOUT:-300}"
+# En algunos servidores `docker exec` imprime el resultado y no cierra la
+# conexión: el CLI queda esperando para siempre. Por eso el comando se lanza
+# con una marca de fin y el host espera esa marca; si el CLI no cierra, se
+# corta la espera y se usa el código de salida real del comando.
+CT_TIMEOUT="${CT_TIMEOUT:-900}"
+CT_PID=""
 
 exec_guard() { # exec_guard SEGUNDOS COMANDO...
   local secs="$1"; shift
@@ -310,6 +313,54 @@ exec_guard() { # exec_guard SEGUNDOS COMANDO...
   fi
 }
 
+# Al cortar con Ctrl+C no debe quedar ningún docker exec colgado.
+cleanup_ct() {
+  if [ -n "${CT_PID:-}" ]; then
+    kill "$CT_PID" 2>/dev/null || true
+    CT_PID=""
+  fi
+}
+trap cleanup_ct EXIT
+trap 'cleanup_ct; printf "\n%sInstalación interrumpida. No se borró nada: podés volver a ejecutar ./setup.sh %s.%s\n" "$YELLOW" "$MODE" "$NC" >&2; exit 130' INT TERM
+
+ct_run() { # ct_run CID root|"" COMANDO...
+  local cid="$1" as_user="$2"; shift 2
+  local out marker pid waited=0 rc
+  local -a opts=()
+
+  out="$(mktemp "${TMPDIR:-/tmp}/invenio-ct.XXXXXX" 2>/dev/null || echo "/tmp/invenio-ct.$$")"
+  marker="INVENIO_DONE_$$_${RANDOM}__"
+  [ "$as_user" = "root" ] && opts+=(-u root)
+
+  docker exec "${opts[@]}" -e "SETUP_MARKER=$marker" "$cid" \
+    sh -c '{ "$@"; }; rc=$?; printf "\n%s:%s\n" "$SETUP_MARKER" "$rc"' sh "$@" \
+    >"$out" 2>&1 </dev/null &
+  pid=$!
+  CT_PID="$pid"
+
+  while kill -0 "$pid" 2>/dev/null; do
+    if grep -q "^${marker}:[0-9]*$" "$out" 2>/dev/null; then break; fi
+    if [ "$waited" -ge "$CT_TIMEOUT" ]; then
+      warn "El comando dentro del contenedor superó ${CT_TIMEOUT}s; se corta la espera."
+      break
+    fi
+    sleep 1
+    waited=$((waited + 1))
+    if [ $((waited % 15)) -eq 0 ]; then
+      printf '      %s… sigue ejecutándose (%ss)%s\n' "$DIM" "$waited" "$NC"
+    fi
+  done
+
+  kill "$pid" 2>/dev/null || true
+  wait "$pid" 2>/dev/null || true
+
+  rc="$(sed -n "s/^${marker}:\([0-9]*\)$/\1/p" "$out" 2>/dev/null | tail -1)"
+  sed "/^${marker}:[0-9]*$/d" "$out" 2>/dev/null || true
+  rm -f "$out" 2>/dev/null || true
+  CT_PID=""
+  return "${rc:-1}"
+}
+
 CT() { # CT SERVICIO COMANDO...
   local service="$1"; shift
   local cid
@@ -318,7 +369,7 @@ CT() { # CT SERVICIO COMANDO...
     warn "El contenedor de $service no está corriendo."
     return 1
   fi
-  exec_guard "$CT_TIMEOUT" docker exec "$cid" "$@"
+  ct_run "$cid" "" "$@"
 }
 
 CT_ROOT() { # CT_ROOT SERVICIO COMANDO...
@@ -329,7 +380,7 @@ CT_ROOT() { # CT_ROOT SERVICIO COMANDO...
     warn "El contenedor de $service no está corriendo."
     return 1
   fi
-  exec_guard "$CT_TIMEOUT" docker exec -u root "$cid" "$@"
+  ct_run "$cid" root "$@"
 }
 
 DB() { CT db "$@"; }
@@ -839,7 +890,7 @@ verify() {
   url="$(public_url)"
 
   info "Comprobando OpenSearch…"
-  if search_http_ok; then
+  if [ "$(search_health_status)" = "healthy" ] || search_logs_ready "$(search_container_id)"; then
     ok "OpenSearch responde"
   else
     warn "OpenSearch no responde (la búsqueda y la creación de índices fallarán)"
