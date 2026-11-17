@@ -332,13 +332,27 @@ up() {
 
 wait_db() {
   info "Esperando a PostgreSQL…"
-  local user db i
+  local user db i cid state
   user="$(env_get POSTGRES_USER "$ENV_FILE")"; user="${user:-postgres}"
   db="$(env_get POSTGRES_DB "$ENV_FILE")"; db="${db:-inveniordm}"
   for i in $(seq 1 60); do
     if DB pg_isready -U "$user" -d "$db" >/dev/null 2>&1; then
       ok "PostgreSQL listo"
       return 0
+    fi
+
+    cid="$(service_cid db)"
+    [ -n "$cid" ] || cid="$(compose ps -aq db 2>/dev/null | head -1)"
+    state=""
+    [ -n "$cid" ] && state="$(docker inspect -f '{{.State.Status}}' "$cid" 2>/dev/null || true)"
+    if [ "$state" = "exited" ] || [ "$state" = "dead" ]; then
+      warn "El contenedor db se detuvo (estado: $state). Últimos logs:"
+      compose logs --tail=60 db || true
+      die "PostgreSQL no arrancó. Revisá: docker compose logs db"
+    fi
+
+    if [ $((i % 5)) -eq 0 ]; then
+      info "PostgreSQL aún no responde (${i}/60, estado: ${state:-desconocido})…"
     fi
     sleep 2
   done
