@@ -27,8 +27,26 @@ case "$MODE" in
     ;;
 esac
 
-dc() { "${COMPOSE[@]}" "$@"; }
-section() { printf '\n===== %s =====\n' "$*"; }
+dc() { guard "${DC_TIMEOUT:-60}" "${COMPOSE[@]}" "$@"; }
+dk() { guard "${DK_TIMEOUT:-30}" docker "$@"; }
+
+# Ningún comando externo puede bloquear el diagnóstico: en algunos servidores
+# `docker exec`/`docker compose exec` imprimen el resultado y no devuelven el
+# control nunca. Con `timeout` el reporte sigue aunque eso pase.
+guard() {
+  local secs="$1"; shift
+  if command -v timeout >/dev/null 2>&1; then
+    timeout -k 5 "$secs" "$@" </dev/null
+  else
+    "$@" </dev/null
+  fi
+}
+
+# Progreso en vivo por la terminal (fd 3), aunque la salida del reporte se
+# esté guardando en el archivo.
+exec 3>&2
+note() { printf '[%s] %s\n' "$(date +%H:%M:%S 2>/dev/null || echo '--:--:--')" "$*" >&3; }
+section() { note "sección: $*"; printf '\n===== %s =====\n' "$*"; }
 mask() {
   sed -E \
     -e 's/(POSTGRES_PASSWORD|INVENIO_SECRET_KEY|INVENIO_SECURITY_PASSWORD_SALT|INVENIO_ADMIN_PASSWORD|INVENIO_MAIL_PASSWORD|INVENIO_S3_SECRET_ACCESS_KEY|INVENIO_S3_ACCESS_KEY_ID|INVENIO_OIDC_APP_CREDENTIALS_CONSUMER_SECRET)([:=]).*/\1\2***/g' \
@@ -45,7 +63,7 @@ inspect_one() {
     printf '%-7s NO EXISTE\n' "$svc"
     return
   fi
-  docker inspect -f '{{.Name}} status={{.State.Status}} health={{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}} exit={{.State.ExitCode}} oom={{.State.OOMKilled}} restarts={{.RestartCount}}' "$id" 2>/dev/null \
+  dk inspect -f '{{.Name}} status={{.State.Status}} health={{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}} exit={{.State.ExitCode}} oom={{.State.OOMKilled}} restarts={{.RestartCount}}' "$id" 2>/dev/null \
     || printf '%-7s inspect falló\n' "$svc"
 }
 
@@ -65,13 +83,9 @@ test_pg_isready() {
     return
   fi
   echo "db id: $id  (usuario=$user base=$db)"
-  if command -v timeout >/dev/null 2>&1; then
-    timeout 10 docker exec "$id" pg_isready -U "$user" -d "$db"
-    echo "pg_isready exit=$?"
-  else
-    docker exec "$id" pg_isready -U "$user" -d "$db"
-    echo "pg_isready exit=$?"
-  fi
+  note "pg_isready…"
+  guard 10 docker exec "$id" pg_isready -U "$user" -d "$db" 2>&1
+  echo "pg_isready exit=$?"
 }
 
 test_sql() {
@@ -80,15 +94,10 @@ test_sql() {
   user="$(env_get POSTGRES_USER)"; user="${user:-postgres}"
   db="$(env_get POSTGRES_DB)"; db="${db:-inveniordm}"
   [ -n "$id" ] || return
-  if command -v timeout >/dev/null 2>&1; then
-    out="$(timeout 10 docker exec "$id" psql -U "$user" -d "$db" -tAc \
-      "select 'sql_ok=' || current_user || '@' || current_database();" 2>&1)"
-    rc=$?
-  else
-    out="$(docker exec "$id" psql -U "$user" -d "$db" -tAc \
-      "select 'sql_ok=' || current_user || '@' || current_database();" 2>&1)"
-    rc=$?
-  fi
+  note "consulta SQL…"
+  out="$(guard 10 docker exec "$id" psql -U "$user" -d "$db" -tAc \
+    "select 'sql_ok=' || current_user || '@' || current_database();" 2>&1)"
+  rc=$?
   printf '%s\n' "$out" | mask
   echo "psql exit=$rc"
 }
@@ -97,15 +106,10 @@ test_web_to_db() {
   local id out rc
   id="$(cid web)"
   [ -n "$id" ] || { echo "web: contenedor no encontrado"; return; }
-  if command -v timeout >/dev/null 2>&1; then
-    out="$(timeout 10 docker exec "$id" python -c \
-      "import socket; socket.create_connection(('db', 5432), 3); print('web->db OK')" 2>&1)"
-    rc=$?
-  else
-    out="$(docker exec "$id" python -c \
-      "import socket; socket.create_connection(('db', 5432), 3); print('web->db OK')" 2>&1)"
-    rc=$?
-  fi
+  note "web -> db…"
+  out="$(guard 10 docker exec "$id" python -c \
+    "import socket; socket.create_connection(('db', 5432), 3); print('web->db OK')" 2>&1)"
+  rc=$?
   printf '%s\n' "$out" | mask
   echo "web->db exit=$rc"
 }
@@ -114,7 +118,8 @@ test_http() {
   local url code
   url="$(env_get INVENIO_SITE_UI_URL)"
   [ -n "$url" ] || { echo "INVENIO_SITE_UI_URL no definido"; return; }
-  code="$(curl -k -sS -o /dev/null -w '%{http_code}' --max-time 20 "$url/" 2>/dev/null || true)"
+  note "HTTP $url…"
+  code="$(guard 25 curl -k -sS -o /dev/null -w '%{http_code}' --max-time 20 "$url/" 2>/dev/null || true)"
   echo "$url -> HTTP ${code:-sin respuesta}"
 }
 
@@ -128,8 +133,8 @@ main() {
   echo "env: $ENV_FILE"
   echo "git: $(git log -1 --oneline 2>/dev/null || echo 'no disponible')"
   echo
-  echo "docker: $(docker version --format 'cliente={{.Client.Version}} servidor={{.Server.Version}}' 2>/dev/null || echo 'no disponible')"
-  echo "compose: $(docker compose version 2>/dev/null || echo 'no disponible')"
+  echo "docker: $(guard 20 docker version --format 'cliente={{.Client.Version}} servidor={{.Server.Version}}' 2>/dev/null || echo 'no disponible')"
+  echo "compose: $(guard 20 docker compose version 2>/dev/null || echo 'no disponible')"
   echo
   echo "--- disco ---"
   df -h / 2>/dev/null || true
@@ -178,7 +183,7 @@ main() {
   fi
 
   section "VOLÚMENES"
-  docker volume ls 2>/dev/null | grep -E 'db-data|instance-data|search-data' || true
+  guard 20 docker volume ls 2>/dev/null | grep -E 'db-data|instance-data|search-data' || true
 
   section "LOGS: db"
   dc logs --tail=80 db 2>&1 | mask || true
@@ -202,5 +207,7 @@ main() {
 }
 
 REPORT="$ROOT_DIR/diagnostico-$(date +%Y%m%d-%H%M%S).txt"
+note "inicio del diagnóstico ($MODE) — cada comando tiene límite de tiempo"
 main 2>&1 | tee "$REPORT"
+note "reporte guardado en: $REPORT"
 printf '\nReporte guardado en: %s\n' "$REPORT" >&2

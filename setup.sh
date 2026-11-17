@@ -16,6 +16,10 @@
 # =============================================================================
 set -Eeuo pipefail
 
+# SETUP_DEBUG=1 muestra cada comando ejecutado: sirve para ver exactamente
+# dónde se queda trabado el script.
+[ "${SETUP_DEBUG:-0}" = "1" ] && set -x
+
 MODE="${1:-}"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT_DIR"
@@ -238,6 +242,21 @@ service_cid() { # service_cid SERVICIO (solo contenedor en ejecución)
   compose ps -q "$1" 2>/dev/null | head -1
 }
 
+# En algunos servidores `docker exec` no devuelve el control aunque el comando
+# de dentro ya haya terminado: el CLI se queda esperando y el script se cuelga
+# para siempre. Todos los exec pasan por `timeout` para que ningún paso pueda
+# bloquear la instalación. Ajustable con CT_TIMEOUT=segundos.
+CT_TIMEOUT="${CT_TIMEOUT:-900}"
+
+exec_guard() { # exec_guard SEGUNDOS COMANDO...
+  local secs="$1"; shift
+  if command -v timeout >/dev/null 2>&1; then
+    timeout -k 10 "$secs" "$@"
+  else
+    "$@"
+  fi
+}
+
 CT() { # CT SERVICIO COMANDO...
   local service="$1"; shift
   local cid
@@ -246,7 +265,7 @@ CT() { # CT SERVICIO COMANDO...
     warn "El contenedor de $service no está corriendo."
     return 1
   fi
-  docker exec "$cid" "$@"
+  exec_guard "$CT_TIMEOUT" docker exec "$cid" "$@"
 }
 
 CT_ROOT() { # CT_ROOT SERVICIO COMANDO...
@@ -257,7 +276,7 @@ CT_ROOT() { # CT_ROOT SERVICIO COMANDO...
     warn "El contenedor de $service no está corriendo."
     return 1
   fi
-  docker exec -u root "$cid" "$@"
+  exec_guard "$CT_TIMEOUT" docker exec -u root "$cid" "$@"
 }
 
 DB() { CT db "$@"; }
@@ -330,12 +349,28 @@ up() {
   ok "Contenedores iniciados"
 }
 
+# ¿PostgreSQL ya acepta conexiones? Se lee el log del contenedor desde su
+# último arranque. No se usa `docker exec`/`compose exec`: en algunos
+# servidores ese comando imprime el resultado y nunca devuelve el control,
+# que es exactamente lo que dejaba el script esperando para siempre.
+db_logs_ready() {
+  local cid="$1" started logs
+  started="$(docker inspect -f '{{.State.StartedAt}}' "$cid" 2>/dev/null || true)"
+  if [ -n "$started" ]; then
+    logs="$(exec_guard 20 docker logs --since "$started" "$cid" 2>&1 || true)"
+  else
+    logs="$(exec_guard 20 docker logs --tail 200 "$cid" 2>&1 || true)"
+  fi
+  case "$logs" in
+    *"database system is ready to accept connections"*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 wait_db() {
   info "Esperando a PostgreSQL…"
-  local user db i cid state health
-  user="$(env_get POSTGRES_USER "$ENV_FILE")"; user="${user:-postgres}"
-  db="$(env_get POSTGRES_DB "$ENV_FILE")"; db="${db:-inveniordm}"
-  for i in $(seq 1 60); do
+  local i cid state health
+  for i in $(seq 1 90); do
     cid="$(service_cid db)"
     [ -n "$cid" ] || cid="$(compose ps -aq db 2>/dev/null | head -1)"
     if [ -z "$cid" ]; then
@@ -347,7 +382,7 @@ wait_db() {
     state="$(docker inspect -f '{{.State.Status}}' "$cid" 2>/dev/null || true)"
     health="$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{end}}' "$cid" 2>/dev/null || true)"
 
-    if [ "$health" = "healthy" ]; then
+    if [ "$state" = "running" ] && { [ "$health" = "healthy" ] || db_logs_ready "$cid"; }; then
       ok "PostgreSQL listo"
       return 0
     fi
@@ -358,19 +393,8 @@ wait_db() {
       die "PostgreSQL no arrancó. Revisá: docker compose logs db"
     fi
 
-    # Respaldo para contenedores creados antes de tener healthcheck.
-    if [ -z "$health" ] && [ $((i % 3)) -eq 0 ]; then
-      if command -v timeout >/dev/null 2>&1; then
-        timeout 5 docker exec "$cid" pg_isready -U "$user" -d "$db" >/dev/null 2>&1 \
-          && { ok "PostgreSQL listo"; return 0; }
-      else
-        docker exec "$cid" pg_isready -U "$user" -d "$db" >/dev/null 2>&1 \
-          && { ok "PostgreSQL listo"; return 0; }
-      fi
-    fi
-
     if [ $((i % 5)) -eq 0 ]; then
-      info "PostgreSQL aún no responde (${i}/60, estado: ${state:-desconocido}, health: ${health:-sin healthcheck})…"
+      info "PostgreSQL aún no responde (${i}/90, estado: ${state:-desconocido}, health: ${health:-sin healthcheck})…"
     fi
     sleep 2
   done
