@@ -297,10 +297,9 @@ service_cid() { # service_cid SERVICIO (solo contenedor en ejecución)
 }
 
 # En algunos servidores `docker exec` no devuelve el control aunque el comando
-# de dentro ya haya terminado: el CLI se queda esperando y el script se cuelga
-# para siempre. Todos los exec pasan por `timeout` para que ningún paso pueda
-# bloquear la instalación. Ajustable con CT_TIMEOUT=segundos.
-CT_TIMEOUT="${CT_TIMEOUT:-900}"
+# de dentro ya haya terminado. Todos los exec pasan por `timeout` para que
+# ningún paso pueda bloquear la instalación. Ajustable con CT_TIMEOUT=segundos.
+CT_TIMEOUT="${CT_TIMEOUT:-300}"
 
 exec_guard() { # exec_guard SEGUNDOS COMANDO...
   local secs="$1"; shift
@@ -583,6 +582,27 @@ wait_search() {
   die "OpenSearch no respondió a tiempo. Revisá: docker compose logs search"
 }
 
+# ¿Hay algo escuchando en ese puerto del host? No usa docker exec.
+port_open() { # port_open HOST PUERTO
+  (exec 3<>"/dev/tcp/$1/$2") >/dev/null 2>&1
+}
+
+# gunicorn anuncia "Listening at: http://0.0.0.0:5000" al arrancar.
+web_logs_ready() {
+  local cid="$1" started logs
+  [ -n "$cid" ] || return 1
+  started="$(docker inspect -f '{{.State.StartedAt}}' "$cid" 2>/dev/null || true)"
+  if [ -n "$started" ]; then
+    logs="$(exec_guard 15 docker logs --since "$started" "$cid" 2>&1 || true)"
+  else
+    logs="$(exec_guard 15 docker logs --tail 200 "$cid" 2>&1 || true)"
+  fi
+  case "$logs" in
+    *"Listening at:"*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 web_url_ok() {
   local url code
   url="$(public_url)"
@@ -594,13 +614,15 @@ web_url_ok() {
 
 wait_web() {
   info "Esperando a la aplicación web…"
-  info "La web puede tardar hasta 2 minutos en arrancar; no interrumpas…"
-  local i cid state
-  for i in $(seq 1 90); do
-    if CT web python -c \
-         "import socket; socket.create_connection(('127.0.0.1',5000),2)" \
-         >/dev/null 2>&1 || web_url_ok; then
-      ok "Web escuchando en el puerto 5000"
+  info "La web puede tardar hasta 2 minutos en arrancar. Ctrl+C es seguro: no borra nada."
+  local i cid state last
+  for i in $(seq 1 60); do
+    if [ "$MODE" = "prod" ] && port_open 127.0.0.1 5000; then
+      ok "Web escuchando en 127.0.0.1:5000"
+      return 0
+    fi
+    if web_url_ok; then
+      ok "Web respondiendo en $(public_url)"
       return 0
     fi
 
@@ -619,12 +641,20 @@ wait_web() {
       local code
       code="$(docker inspect -f '{{.State.ExitCode}}' "$cid" 2>/dev/null || true)"
       warn "El contenedor web se detuvo (código ${code:-?}). Últimos logs:"
-      docker logs --tail=80 "$cid" 2>&1 || true
+      exec_guard 20 docker logs --tail=80 "$cid" 2>&1 || true
       die "La web no arrancó. Revisá: docker compose logs web"
     fi
 
+    # El arranque de gunicorn se ve en el log del contenedor y no necesita exec.
+    if web_logs_ready "$cid"; then
+      ok "Web arrancada (gunicorn escuchando en el puerto 5000)"
+      return 0
+    fi
+
     if [ $((i % 5)) -eq 0 ]; then
-      info "La web aún no responde (${i}/90, estado: ${state:-desconocido})…"
+      info "La web aún no responde (${i}/60, estado: ${state:-desconocido})…"
+      last="$(exec_guard 15 docker logs --tail 4 "$cid" 2>&1 | tail -3 || true)"
+      [ -n "$last" ] && printf '%s\n' "$last" | sed 's/^/      /'
     fi
     sleep 2
   done
