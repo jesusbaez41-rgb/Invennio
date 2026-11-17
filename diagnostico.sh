@@ -27,6 +27,12 @@ case "$MODE" in
     ;;
 esac
 
+# Sin buffer: el progreso y el reporte se ven en vivo y en orden, aunque la
+# salida pase por `tee` hacia un archivo.
+if [ -z "${__DIAG_UNBUF:-}" ] && command -v stdbuf >/dev/null 2>&1; then
+  __DIAG_UNBUF=1 exec stdbuf -oL -eL "$ROOT_DIR/$(basename "$0")" "$@"
+fi
+
 dc() { guard "${DC_TIMEOUT:-60}" "${COMPOSE[@]}" "$@"; }
 dk() { guard "${DK_TIMEOUT:-30}" docker "$@"; }
 
@@ -42,10 +48,8 @@ guard() {
   fi
 }
 
-# Progreso en vivo por la terminal (fd 3), aunque la salida del reporte se
-# esté guardando en el archivo.
-exec 3>&2
-note() { printf '[%s] %s\n' "$(date +%H:%M:%S 2>/dev/null || echo '--:--:--')" "$*" >&3; }
+# Progreso en vivo: cada sección se anuncia antes de ejecutarse.
+note() { printf '[%s] %s\n' "$(date +%H:%M:%S 2>/dev/null || echo '--:--:--')" "$*"; }
 section() { note "sección: $*"; printf '\n===== %s =====\n' "$*"; }
 mask() {
   sed -E \
@@ -70,7 +74,24 @@ inspect_one() {
 env_get() {
   local key="$1"
   sed -n "s/^[[:space:]]*${key}=//p" "$ENV_FILE" 2>/dev/null | tail -1 \
-    | sed -E 's/^"(.*)"$/\1/; s/^'\''(.*)'\''$/\1/'
+    | sed -E 's/^"(.*)"$/\1/; s/^'\''(.*)'\''$/\1/' \
+    | tr -d '\r'
+}
+
+# Un .env con CRLF deja un "\r" invisible en cada valor: el rol de PostgreSQL
+# se llama "postgres\r", la contraseña no coincide y las URLs fallan.
+check_env_files() {
+  local f cr
+  for f in .env .env.prod .env.prod.save .env.example; do
+    [ -f "$f" ] || continue
+    cr="$(tr -cd '\r' < "$f" | wc -c | tr -d ' ')"
+    if [ "${cr:-0}" -gt 0 ]; then
+      printf '%s: TIENE %s CR (CRLF de Windows) -> los valores llevan \\r al final\n' "$f" "$cr"
+      printf '      arreglo: sed -i '"'"'s/\\r$//'"'"' %s\n' "$f"
+    else
+      printf '%s: LF correcto\n' "$f"
+    fi
+  done
 }
 
 test_pg_isready() {
@@ -84,7 +105,7 @@ test_pg_isready() {
   fi
   echo "db id: $id  (usuario=$user base=$db)"
   note "pg_isready…"
-  guard 10 docker exec "$id" pg_isready -U "$user" -d "$db" 2>&1
+  guard 30 docker exec "$id" pg_isready -U "$user" -d "$db" 2>&1
   echo "pg_isready exit=$?"
 }
 
@@ -95,7 +116,7 @@ test_sql() {
   db="$(env_get POSTGRES_DB)"; db="${db:-inveniordm}"
   [ -n "$id" ] || return
   note "consulta SQL…"
-  out="$(guard 10 docker exec "$id" psql -U "$user" -d "$db" -tAc \
+  out="$(guard 30 docker exec "$id" psql -U "$user" -d "$db" -tAc \
     "select 'sql_ok=' || current_user || '@' || current_database();" 2>&1)"
   rc=$?
   printf '%s\n' "$out" | mask
@@ -107,7 +128,7 @@ test_web_to_db() {
   id="$(cid web)"
   [ -n "$id" ] || { echo "web: contenedor no encontrado"; return; }
   note "web -> db…"
-  out="$(guard 10 docker exec "$id" python -c \
+  out="$(guard 30 docker exec "$id" python -c \
     "import socket; socket.create_connection(('db', 5432), 3); print('web->db OK')" 2>&1)"
   rc=$?
   printf '%s\n' "$out" | mask
@@ -152,6 +173,9 @@ main() {
   for svc in db web search worker cache proxy; do
     inspect_one "$svc"
   done
+
+  section "ARCHIVOS DE ENTORNO (finales de línea)"
+  check_env_files
 
   section "CONFIGURACIÓN (secretos ocultos)"
   if [ -f "$ENV_FILE" ]; then

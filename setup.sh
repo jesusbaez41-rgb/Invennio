@@ -48,7 +48,8 @@ env_get() { # env_get CLAVE ARCHIVO
   local key="$1" file="$2"
   [ -f "$file" ] || return 0
   sed -n "s/^[[:space:]]*${key}=//p" "$file" | tail -1 \
-    | sed -E 's/^"(.*)"$/\1/; s/^'\''(.*)'\''$/\1/'
+    | sed -E 's/^"(.*)"$/\1/; s/^'\''(.*)'\''$/\1/' \
+    | tr -d '\r'
 }
 
 env_set() { # env_set CLAVE VALOR (usa $ENV_FILE)
@@ -297,6 +298,15 @@ prepare_env() {
       ok "Creado .env a partir de .env.example"
     fi
   fi
+
+  # Un .env creado/pegado desde Windows trae CRLF: cada valor queda con un
+  # "\r" invisible al final. Eso crea roles como "postgres\r" en PostgreSQL,
+  # rompe contraseñas, URLs y TRUSTED_HOSTS. Se normaliza a LF antes de usarlo.
+  if grep -q $'\r' "$ENV_FILE" 2>/dev/null; then
+    sed -i 's/\r$//' "$ENV_FILE"
+    ok "Normalizado $ENV_FILE: se quitaron los CR de Windows (CRLF → LF)"
+  fi
+
   chmod 600 "$ENV_FILE" 2>/dev/null || true
 }
 
@@ -425,11 +435,28 @@ search_http_ok() {
 
   local cmd=(docker exec "$cid" sh -c \
     "curl -fsS --connect-timeout 2 --max-time 5 'http://127.0.0.1:9200/_cluster/health'")
-  if command -v timeout >/dev/null 2>&1; then
-    timeout 15 "${cmd[@]}" >/dev/null 2>&1
+  exec_guard 15 "${cmd[@]}" >/dev/null 2>&1
+}
+
+# Señal de disponibilidad sin usar `docker exec`: el log del arranque actual
+# indica que el nodo ya publicó el cluster. El healthcheck (curl dentro del
+# contenedor) puede quedarse "unhealthy" en servidores donde `docker exec`
+# no devuelve el control aunque el comando de dentro termine.
+search_logs_ready() {
+  local cid="$1" started logs
+  [ -n "$cid" ] || return 1
+  started="$(docker inspect -f '{{.State.StartedAt}}' "$cid" 2>/dev/null || true)"
+  if [ -n "$started" ]; then
+    logs="$(exec_guard 20 docker logs --since "$started" "$cid" 2>&1 || true)"
   else
-    "${cmd[@]}" >/dev/null 2>&1
+    logs="$(exec_guard 20 docker logs --tail 400 "$cid" 2>&1 || true)"
   fi
+  case "$logs" in
+    *"Cluster health status changed from [YELLOW] to [GREEN]"*) return 0 ;;
+    *"Cluster health status changed from [RED] to [GREEN]"*) return 0 ;;
+    *"Cluster health status changed from [RED] to [YELLOW]"*) return 0 ;;
+    *) return 1 ;;
+  esac
 }
 
 # Sin OpenSearch la web arranca igual, pero fallan "invenio index init" y
@@ -437,14 +464,23 @@ search_http_ok() {
 # contenedor murió, se aborta con la causa en vez de seguir a ciegas.
 wait_search() {
   info "Esperando a OpenSearch…"
-  local i state cid attempts=150
+  local i state cid health attempts=150
   for i in $(seq 1 "$attempts"); do
-    if search_http_ok; then
+    cid="$(search_container_id)"
+    health="$(search_health_status)"
+
+    if [ "$health" = "healthy" ]; then
       ok "OpenSearch listo"
       return 0
     fi
 
-    cid="$(search_container_id)"
+    # El healthcheck usa `docker exec` (curl dentro del contenedor). Si no es
+    # fiable en este servidor, el log del arranque es igual de concluyente.
+    if search_logs_ready "$cid"; then
+      ok "OpenSearch listo (según su log de arranque)"
+      return 0
+    fi
+
     [ -n "$cid" ] || cid="$(compose ps -aq search 2>/dev/null | head -1)"
     state=""
     if [ -n "$cid" ]; then
@@ -485,7 +521,7 @@ wait_search() {
   free -h 2>/dev/null || true
   if [ -n "$cid" ]; then
     warn "Prueba directa a OpenSearch:"
-    docker exec "$cid" sh -c \
+    exec_guard 15 docker exec "$cid" sh -c \
       "curl -v --connect-timeout 2 --max-time 5 'http://127.0.0.1:9200/_cluster/health'" \
       2>&1 | tail -15 || true
   fi
